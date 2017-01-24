@@ -1,0 +1,41 @@
+tile.FerrisConstructor.name=Work Table for Ferris Wheel Frame
+tile.FerrisBasketConstructor.name=Work Table for Ferris Wheel Basket
+tile.FerrisConnector.name=Connector Block
+tile.FerrisCore.name=Ferris Wheel Core
+tile.FerrisSupporter.name=Supporter Block
+tile.FerrisRemoteController.name=Remote Controller
+tile.FerrisFileManager.name=Export and Import Block 
+tile.FerrisSeatToSit.name=Seat to Sit
+tile.FerrisCutter.name=Cutter
+tile.FerrisChunkLoader.name=ChunkLoader?
+tile.FerrisSeatEx.name=Fixed View Seat
+
+item.ItemFerrisSeed.name=Ferris Wheel Seed
+item.ItemFerrisWheel.name=Ferris Wheel Frame
+item.ItemFerrisBasket.name=Ferris Wheel Basket
+
+message.construct.connector_only1=Failure : There is not a connector, or there is too many it.
+message.remotecon.notag=First, right click a FerrisCore block or WorkTable block.
+message.fileread.error=File not read.
+message.command.sync.true=Enable angle synchronization from the server. 
+message.command.sync.false=Disable angle synchronization from the server.
+message.command.renderdist=Render distance magnification is changed.
+message.coreGUI.sync.cannotregisttoparent=Can't be synchronize the wheel of the parent of the synchronization turn.
+
+message.error.repos=Mod file is broken. Try to download it again.
+
+gui.core.switch.changemode=Change Mode
+gui.core.text.modename0=Normal Rotation
+gui.core.text.modename1=Pendulum Motion
+gui.core.text.modename2=Round Trip
+gui.core.text.modename3=Step Rotation
+gui.core.text.modename100=Synchronism Mode
+
+gui.core.switch.rsmode=Change RS Mode
+gui.core.switch.rsmode0=Non
+gui.core.switch.rsmode1=Stop When On
+gui.core.switch.rsmode2=Stop When Off
+gui.core.switch.rsmode3=Ratio Positive
+gui.core.switch.rsmode4=Ratio Negative
+
+gui.core.switch.syncmode=Sync Mode
