@@ -53,7 +53,7 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	public static final byte rotFlag_ComeAndGo = 2;
 	public static final byte rotFlag_Move_RsOnToggle = 3;
 	public static final byte rotFlag_StoryBoard = 4;
-	public static final byte rotFlag_End = 4; //終わりのマジックナンバー
+	public static final byte rotFlag_End = 5; //番兵
 	public static final byte rotFlag_Sync = 100;
 	
 	public byte rsFlag = 0;
@@ -493,7 +493,7 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	public void changeRotFlag()
 	{
 		rotFlag++;
-		if(rotFlag > rotFlag_End) rotFlag = 0;
+		if(rotFlag >= rotFlag_End) rotFlag = 0;
 		//モード変えたら値リセット
 		stopFlag = false;
 		rotAccel = 0;
@@ -512,7 +512,7 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	public void changeSyncMode()
 	{
 		//　通常回転モードと同期モード以外ならば操作しない　ボタンもないはずではある
-		if(rotFlag > rotFlag_Normal && rotFlag <= rotFlag_End)return;
+		if(rotFlag > rotFlag_Normal && rotFlag < rotFlag_End)return;
 		if(rotFlag==rotFlag_Normal)rotFlag = rotFlag_Sync;
 		else rotFlag = rotFlag_Normal;
 	}

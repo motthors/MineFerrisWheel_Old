@@ -5,6 +5,7 @@ import org.lwjgl.opengl.GL11;
 import cpw.mods.fml.client.config.GuiButtonExt;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import mfw.storyboard.programpanel.IProgramPanel;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.OpenGlHelper;
@@ -14,10 +15,12 @@ import net.minecraft.util.ResourceLocation;
 public class CustomTexButton extends GuiButtonExt{
 	
 	ResourceLocation customtexture;
+	public IProgramPanel panel;
 	
-	public CustomTexButton(ResourceLocation tex, int id, int xPos, int yPos, int width, int height, String displayString) {
+	public CustomTexButton(ResourceLocation tex, IProgramPanel panel, int id, int xPos, int yPos, int width, int height, String displayString) {
 		super(id, xPos, yPos, width, height, displayString);
 		customtexture = tex;
+		this.panel = panel;
 	}
 	
 	public void setTexture(ResourceLocation tex)
@@ -26,6 +29,10 @@ public class CustomTexButton extends GuiButtonExt{
 	}
 
 	public void drawButton(Minecraft p_146112_1_, int p_146112_2_, int p_146112_3_)
+	{
+		return;
+	}
+	public void drawButton2(Minecraft p_146112_1_, int p_146112_2_, int p_146112_3_)
     {
         if (this.visible)
         {

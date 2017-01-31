@@ -68,6 +68,7 @@ public class MessageFerrisMisc implements IMessage, IMessageHandler<MessageFerri
 	
 	public static final int GUIOpenStoryBoard = 600;
 	public static final int GUICloseStoryBoard = 601;
+	public static final int GUIStoryBoardAddPanel = 602;
 	
 	public static final int GUIBackPartGUIOpen = 9999;
 	public static final int GUISubPartGUIOpenBase = 10000; // +ƒ¿

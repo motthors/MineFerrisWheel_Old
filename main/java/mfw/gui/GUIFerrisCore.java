@@ -24,6 +24,7 @@ import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.StatCollector;
+import scala.reflect.internal.Types.FlagAgnosticCompleter;
 
 public class GUIFerrisCore extends GuiContainer {
 	
@@ -277,7 +278,13 @@ public class GUIFerrisCore extends GuiContainer {
     public void ChangeButton_ChangeMode()
     {
     	if(tile.rotFlag ==  TileEntityFerrisWheel.rotFlag_Sync)return; // Ç±Ç»Ç¢ÇÕÇ∏Ç≈ÇÕÇ†ÇÈÅ@àÍâû
-    	byte flag = tile.rotFlag == TileEntityFerrisWheel.rotFlag_End ? GUIModeFlagEnum_Normal : GUIModeFlagEnum_ModeRotate;
+    	byte flag;
+    	switch((tile.rotFlag + 1) % TileEntityFerrisWheel.rotFlag_End)
+    	{
+    	case TileEntityFerrisWheel.rotFlag_Normal : flag = GUIModeFlagEnum_Normal; break;
+    	case TileEntityFerrisWheel.rotFlag_StoryBoard : flag = GUIModeFlagEnum_StoryBoard; break;
+    	default : flag = GUIModeFlagEnum_ModeRotate;
+    	}
     	setButtonPosFromGUIModeFlagEnum(flag);
     	ChangeNames(tile.rotFlag+1, flag);
     	stringRotMode = StatCollector.translateToLocal("gui.core.text.modename"+(tile.rotFlag+1)%(TileEntityFerrisWheel.rotFlag_End+1));
@@ -304,7 +311,7 @@ public class GUIFerrisCore extends GuiContainer {
 //		groupid = 4; //sync param  tile.rotFlag_Sync;
 //    	groupid = 5; // for rotMisc, only ModeRotate
 //    	groupid = 6; // only for Resist
-//    	groupid = 6; // only for storyboard
+//    	groupid = 7; // only for storyboard
     	boolean T = true;
     	boolean F = false;
 //    	boolean table2[][]
@@ -356,14 +363,15 @@ public class GUIFerrisCore extends GuiContainer {
     	case 1 : names = new String[]{"","","","",""}; break;
     	case 3 : names = new String[]{"","Speed","Amp","Phase",""}; break;
     	case 2 : 
-    		switch((rotFlag)%(TileEntityFerrisWheel.rotFlag_End+1))
+    		switch((rotFlag)%TileEntityFerrisWheel.rotFlag_End)
     		{
     		case TileEntityFerrisWheel.rotFlag_ComeAndGo :
     			names = new String[]{"Accel","Speed","ang1","ang2",""}; break;
     		case TileEntityFerrisWheel.rotFlag_Move_RsOnToggle :
     			names = new String[]{"Accel","Speed","Value","(none)",""}; break;
-    		default : names = new String[]{"Accel","Speed","Amp","Phase",""}; break;
+    		default : names = new String[]{"Accel","Speed","Amp","Phase","Resist"}; break;
     		}
+    		break;
     	case GUIModeFlagEnum_StoryBoard :
     		names = new String[]{"", "", "", "", "",}; break;
     	}

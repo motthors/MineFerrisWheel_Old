@@ -1,9 +1,10 @@
 package mfw.gui;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.io.Charsets;
 import org.lwjgl.opengl.GL11;
 
 import cpw.mods.fml.client.config.GuiButtonExt;
@@ -12,20 +13,41 @@ import mfw.gui.container.DefContainer;
 import mfw.message.MFW_PacketHandler;
 import mfw.message.MessageFerrisMisc;
 import mfw.storyboard.CustomTexButton;
+import mfw.storyboard.GuiTextFieldExt;
+import mfw.storyboard.INotifiedHandler;
+import mfw.storyboard.StoryBoardManager;
+import mfw.storyboard.programpanel.IProgramPanel;
+import mfw.storyboard.programpanel.SetValuePanel;
+import mfw.storyboard.programpanel.TimerPanel;
 import mfw.tileEntity.TileEntityFerrisWheel;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.inventory.Slot;
 import net.minecraft.util.ResourceLocation;
 
-public class GUIStoryBoard extends GuiContainer {
+public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
 	
 	private static final ResourceLocation TEXTURE = new ResourceLocation(MFW_Core.MODID, "textures/gui/storyboard.png");
-    private static int buttonid;
-    private int panelid;
-    private GuiTextField textField;
+	private static final ResourceLocation Tex1 = new ResourceLocation(MFW_Core.MODID, "textures/gui/p1.png");
+	private static final ResourceLocation Tex2 = new ResourceLocation(MFW_Core.MODID, "textures/gui/p2.png");
+	private static final ResourceLocation Tex3 = new ResourceLocation(MFW_Core.MODID, "textures/gui/p3.png");
+	
+	public enum buttonGroup{
+		PanelIdFlag,
+		Close,
+		AddPanel,
+		SelectPanel,
+		Panel,
+		Setting,
+	}
+	
+    private int groupid;
+    private ArrayList<CustomTexButton> PanelButtonList;
+    private ArrayList<GUIStoryBoardSettingPart> SettingPartButtonlist;
+    private List<GuiTextField> textFieldList = new ArrayList<GuiTextField>();
+    private IProgramPanel nowTargetPanel;
     private TileEntityFerrisWheel tile;
     int blockposX;
     int blockposY;
@@ -34,21 +56,26 @@ public class GUIStoryBoard extends GuiContainer {
     int offsetx;
     int offsety;
     
-    int ButtonIDFlagDrawCore;
-    int ButtonIDFlagDrawEntity;
+    int idOffsetAddPanel;
     
     GuiButtonExt AnsBtn;
     GuiButtonExt Adder;
+
+    ArrayList<GUIStoryBoardSettingPart> nowSelectedSettingList;
+    ArrayList<GUIStoryBoardSettingPart> ButtonListSelectMode 	= new ArrayList<GUIStoryBoardSettingPart>();
+    ArrayList<GUIStoryBoardSettingPart> ButtonGroupListSet 		= new ArrayList<GUIStoryBoardSettingPart>();
+    ArrayList<GUIStoryBoardSettingPart> ButtonGroupListTimer 	= new ArrayList<GUIStoryBoardSettingPart>();
+    ArrayList<GUIStoryBoardSettingPart> ButtonGroupListRun 		= new ArrayList<GUIStoryBoardSettingPart>();
+    class PanelSettingGuiData{ 
+    	public IProgramPanel targetPanelClass;
+    	public ArrayList<GUIStoryBoardSettingPart> list;
+    	PanelSettingGuiData(IProgramPanel c, ArrayList<GUIStoryBoardSettingPart> a)
+    	{targetPanelClass = c; list = a;}
+    };
     
-    class GUIName{
-		String name;
-		int x;
-		int y;
-		int flag;
-		int baseID;
-		GUIName(String str,int x, int y, int flag, int base){name=str; this.x=x; this.y=y; this.flag = flag; this.baseID = base;}
-	}
-    Map<Integer, GUIName> GUINameMap = new HashMap<Integer, GUIName>();
+    int settingButtonsOffsetX = 300;
+     
+    Map<Integer, buttonGroup> ButtonMap = new HashMap<Integer, buttonGroup>();
     
     
     public GUIStoryBoard(int x, int y, int z, TileEntityFerrisWheel tile)
@@ -59,6 +86,8 @@ public class GUIStoryBoard extends GuiContainer {
 		blockposY = y;
 		blockposZ = z;
 		xSize = 270;
+		PanelButtonList = new ArrayList<CustomTexButton>();
+		SettingPartButtonlist = new ArrayList<GUIStoryBoardSettingPart>();
     }
  
     // GUIを開くたび呼ばれる初期化関数
@@ -67,73 +96,241 @@ public class GUIStoryBoard extends GuiContainer {
     {
 		super.initGui();
 		
-		GUINameMap.clear();
-//		this.guiLeft = this.width*7/8 - xSize/2;
-		buttonid = 2;
-		panelid = 0;
+		ButtonMap.clear();
+		PanelButtonList.clear();
 		// ボタン登録
 		ySize = mc.displayHeight;
 		offsetx = this.guiLeft + 20;
 		offsety = 0;
-//		int offset = 4;
-//        int length = 27;
 		
-        this.textField = new GuiTextField(this.fontRendererObj, offsetx + 136, offsety + 15, 95, 12);
-        this.textField.setTextColor(-1);
-        this.textField.setDisabledTextColour(-1);
-        this.textField.setEnableBackgroundDrawing(false);
-        this.textField.setMaxStringLength(40);
+		//TODO シリアル文字列の表示用
+        GuiTextField textField = new GuiTextField(this.fontRendererObj, offsetx + 136, offsety + 15, 95, 12);
+		textField.setTextColor(-1);
+		textField.setDisabledTextColour(-1);
+		textField.setEnableBackgroundDrawing(false);
+		textField.setMaxStringLength(40);
+		textFieldList.add(textField);
 
-        addButton1(29, 13, -15, 2, "back", MessageFerrisMisc.GUICloseStoryBoard);
-        AnsBtn = addButton1(29, 13, 15, 2, "-ans-", MessageFerrisMisc.GUICloseStoryBoard);
-        Adder = addButton1(29, 13, 15, 22, "AddPanel", MessageFerrisMisc.GUICloseStoryBoard);
+        //共通
+        addButton(29, 13, -15, 2, "back", buttonGroup.Close);
+        //Adder = addButton(40, 18, -15, 22, "AddPanel", buttonGroup.SelectPanel);
 		
-		ButtonIDFlagDrawCore = buttonid;
-		
-		ButtonIDFlagDrawEntity = buttonid;
-		
-		
+        //追加したいパネルの種類を選ぶやつ
+        idOffsetAddPanel = buttonList.size();
+        for(int apiidx = 0; apiidx < IProgramPanel.Mode.values().length; ++apiidx)
+    	{
+        	String desc = IProgramPanel.Mode.values()[apiidx].name();
+//        	GUIStoryBoardSettingPart part = new GUIStoryBoardSettingPart(this, -1000, 15+(apiidx-1)*20, IProgramPanel.Type.change, desc, fontRendererObj, buttonGroup.SelectPanel);
+//    		ButtonListSelectMode.add(part);
+//    		SettingPartButtonlist.add(part);
+        	
+        	addButton(40, 15, -15, 50+(apiidx-1)*20, desc, buttonGroup.AddPanel);
+    	}
+        
+        //各種パネル設定用ボタン
+        PanelSettingGuiData[] classes  = {
+        		new PanelSettingGuiData(new SetValuePanel(), ButtonGroupListSet),
+        		new PanelSettingGuiData(new TimerPanel(), ButtonGroupListTimer),
+        };
+        for(int i=0; i < classes.length; ++i)
+        {
+        	int apinum = (Integer) classes[i].targetPanelClass.ApiNum();
+        	for(int apiidx = 0; apiidx < apinum; ++apiidx)
+        	{
+        		IProgramPanel.Type type = (IProgramPanel.Type)classes[i].targetPanelClass.getType(apiidx);
+        		String desc = classes[i].targetPanelClass.getDescription(apiidx);
+        		Object value = classes[i].targetPanelClass.getValue(apiidx);
+        		GUIStoryBoardSettingPart part = new GUIStoryBoardSettingPart(this, -1000, 20+apiidx*30, type, desc, value, fontRendererObj, buttonGroup.Setting);
+        		classes[i].list.add(part);
+        		SettingPartButtonlist.add(part);
+        	}
+        }
+        
+        //パネルタイムライン独自ボタン
+		for( IProgramPanel panel : tile.getStoryBoardManager().getPanelList())
+		{
+			addPanelButton(panel);
+		}
     }
-
-	public GuiButtonExt addButton1(int lenx, int leny, int posx, int posy, String str, int flag)
+	public int AddToButtonList(GuiButton button, buttonGroup enumGroup)
 	{
-		return addButton1(lenx, leny, posx, posy, str, "", flag);
+		button.id = buttonList.size();
+		ButtonMap.put(button.id, enumGroup);
+		buttonList.add(button);
+		return button.id;
 	}
-	@SuppressWarnings("unchecked")
-	public GuiButtonExt addButton1(int lenx, int leny, int posx, int posy, String str, String buttonStr, int flag)
+	public int AddToTextFieldList(GuiTextField text)
 	{
-		GuiButtonExt btn = new GuiButtonExt(buttonid++, posx+offsetx, posy+offsety, lenx, leny, str);
+		int id = textFieldList.size();
+		textFieldList.add(text);
+		if(text instanceof GuiTextFieldExt)((GuiTextFieldExt)text).id = id;
+		return id;
+	}
+	public FontRenderer GetFontRenderer(){
+		return fontRendererObj;
+	}
+	
+	private ResourceLocation DefaultTex()
+	{
+		return PanelModeToTex(IProgramPanel.Mode.set);
+	}
+	
+	private ResourceLocation PanelModeToTex(IProgramPanel.Mode mode)
+	{
+		switch(mode)
+		{
+		case set : return Tex1;
+		case timer : return Tex2;
+		default : return DefaultTex();
+		}
+	}
+
+	public GuiButtonExt addButton(int lenx, int leny, int posx, int posy, String str, buttonGroup enumGroup)
+	{
+		int id = buttonList.size();
+		GuiButtonExt btn = new GuiButtonExt(id, posx+offsetx, posy+offsety, lenx, leny, str);
     	this.buttonList.add(btn);
-    	GUINameMap.put(buttonid-1, new GUIName(buttonStr, posx-40, posy, flag, -1));
+    	ButtonMap.put(id, enumGroup);
     	return btn;
     }
     
 	private void addPanelButton()
 	{
-		GuiButtonExt btn = new CustomTexButton(null, buttonid++, posx+offsetx, posy+offsety, lenx, leny, str);
+		addPanelButton(null);
+	}
+	private void addPanelButton(IProgramPanel panel)
+	{
+		int id = buttonList.size();
+		int panelIdx = PanelButtonList.size();
+		ResourceLocation tex = PanelModeToTex(panel.getMode());
+		CustomTexButton btn = new CustomTexButton(tex, panel, buttonList.size(), offsetx+50, 50 + panelIdx*20, 30, 20, "");
 		this.buttonList.add(btn);
+		this.PanelButtonList.add(btn);
+		ButtonMap.put(id, buttonGroup.Panel);
 	}
 	
 	public void clearPanel()
 	{
-		panelid = 0;
+		PanelButtonList.clear();
 		tile.getStoryBoardManager().clear();
 	}
 	
     @Override
 	public void onGuiClosed()
     {
-//    	ERC_ManagerFerrisHweel.CloseRailGUI();
-//    	tile.wheelName = textField.getText();
+    	//TODO Panelの構成をTileへ保存
 		super.onGuiClosed();
 	}
     
-    public String getName()
+	@Override
+	protected void actionPerformed(GuiButton button)
+	{
+		buttonGroup Group = ButtonMap.get(button.id);
+		int data = -9999;
+		int flag = -9999;
+		
+		switch(Group)
+		{
+		case Close :
+			flag = MessageFerrisMisc.GUICloseStoryBoard;
+			break;
+		case AddPanel:
+			IProgramPanel panel = StoryBoardManager.createPanel(button.displayString);
+			addPanelButton(panel);
+			changePanelSettingGui(panel);
+			return;
+		case SelectPanel:
+			return;
+		case Panel :
+			changePanelSettingGui(((CustomTexButton)button).panel);
+			return;
+		case Setting :
+			for(GUIStoryBoardSettingPart part : nowSelectedSettingList){
+				if(part.findButton(button.id)){
+					int apiidx = nowSelectedSettingList.indexOf(part);
+					int[] update = nowTargetPanel.setValue(apiidx, null);
+					for(int i : update){
+						nowSelectedSettingList.get(i).setValue(nowTargetPanel.getValue(i));
+					}
+				}
+			}
+			return;
+		default:
+            return;
+		}
+
+		MessageFerrisMisc packet = new MessageFerrisMisc(blockposX,blockposY,blockposZ,
+				flag , data, null);
+	    MFW_PacketHandler.INSTANCE.sendToServer(packet);
+	}
+	
+	public void actionPerformed(Object object)
+	{
+		GuiTextFieldExt text = (GuiTextFieldExt)object;
+		for(GUIStoryBoardSettingPart part : nowSelectedSettingList){
+			if(part.findText(text.id)){
+				int apiidx = nowSelectedSettingList.indexOf(part);
+				int[] update = nowTargetPanel.setValue(apiidx, text.getText());
+				for(int i : update){
+					nowSelectedSettingList.get(i).setValue(nowTargetPanel.getValue(i));
+				}
+			}
+		}
+	}
+	
+	private GUIStoryBoardSettingPart findSettingPartFromButtonID(int buttonid, ArrayList<GUIStoryBoardSettingPart> source)
+	{
+		for(GUIStoryBoardSettingPart part : source)
+		{
+			if(part.buttonid == buttonid)return part;
+		}
+		return null;
+	}
+	
+	private void changePanelSettingGui(IProgramPanel panel)
+	{
+		if(nowTargetPanel!=null)changePanelSettingGuiPos(nowTargetPanel.getMode(), -1000);
+		nowTargetPanel = panel;
+		changePanelSettingGuiPos(nowTargetPanel.getMode(), settingButtonsOffsetX);
+	}
+	
+	private void changePanelSettingGuiPos(IProgramPanel.Mode mode, int x)
+	{
+		switch(mode)
+		{
+		case set : 
+			for(GUIStoryBoardSettingPart button : ButtonGroupListSet){button.setPos(x);} nowSelectedSettingList = ButtonGroupListSet; break;
+		case timer : 
+			for(GUIStoryBoardSettingPart button : ButtonGroupListTimer){button.setPos(x);} nowSelectedSettingList = ButtonGroupListTimer; break;
+		case linear : 
+			for(GUIStoryBoardSettingPart button : ButtonGroupListRun){button.setPos(x);} nowSelectedSettingList = ButtonGroupListRun; break;
+		}
+	}
+    
+    @Override
+    public void drawScreen(int x, int y, float partialtick)
     {
-    	return textField.getText();
+        super.drawScreen(x, y, partialtick);
+        GL11.glDisable(GL11.GL_LIGHTING);
+        GL11.glDisable(GL11.GL_BLEND);
+        
+        for(GuiTextField textField : textFieldList)
+    	{
+        	textField.drawTextBox();
+    	}
+        
+        int start = 0; //TODO
+        int num = 8; //TODO
+        int end = (start+num < PanelButtonList.size()) ? start+num : PanelButtonList.size();
+        for (int i = start; i < end; ++i)
+        {
+        	PanelButtonList.get(i).drawButton2(this.mc, x, y);
+        }
+        for(GUIStoryBoardSettingPart part : SettingPartButtonlist)
+        {
+        	part.Draw();
+        }
     }
-    
-    
 	@Override
     public void drawWorldBackground(int p_146270_1_)
     {
@@ -155,10 +352,10 @@ public class GUIStoryBoard extends GuiContainer {
         
         this.fontRendererObj.drawString("Name", 120, 15, 0x404040);    
         
-        for(GUIName g :  GUINameMap.values())
-        {
-        	this.fontRendererObj.drawString(g.name,g.x,g.y,0x404040);
-        }
+//        for(GUIName g :  ButtonMap.values())
+//        {
+//        	this.fontRendererObj.drawString(g.name,g.x,g.y,0x404040);
+//        }
         
 //        drawString(this.fontRendererObj, ""+ERC_BlockRailManager.clickedTileForGUI.GetPosNum(), 43, 29, 0xffffff);
 //        drawString(this.fontRendererObj, String.format("%d",tile.getLimitFrameLength()), 57, 20, 0xffffff);
@@ -205,51 +402,6 @@ public class GUIStoryBoard extends GuiContainer {
     {
         return false;
     }
-
-	@Override
-	protected void actionPerformed(GuiButton button)
-	{
-		GUIName obj = GUINameMap.get(button.id);
-		int data = (button.id - obj.baseID);
-		
-		switch(this.GUINameMap.get(button.id).flag)
-		{
-		case MessageFerrisMisc.GUIConstruct :
-//			tile.startConstructWheel();
-			return;
-		case MessageFerrisMisc.GUIAddLength:
-		case MessageFerrisMisc.GUIAddWidth:
-			switch(data)
-			{
-			case 0 : data = -50;	break;
-			case 1 : data = -5;		break;
-			case 2 : data = -1;		break;
-			case 3 : data =  1;		break;
-			case 4 : data =  5;		break;
-			case 5 : data =  50;	break;
-			}
-			break;
-		case MessageFerrisMisc.GUIAddCopyNum:
-			switch(data)
-			{
-			case 0 : data = -1;	break;
-			case 1 : data =  1;	break;
-			}
-			break;
-		case MessageFerrisMisc.GUIDrawCoreFlag:
-//			((GuiButtonExt)buttonList.get(ButtonIDFlagDrawCore)).displayString = tile.FlagDrawCore?"OFF":"ON";
-			break;
-		case MessageFerrisMisc.GUIDrawEntityFlag:
-//			((GuiButtonExt)buttonList.get(ButtonIDFlagDrawEntity)).displayString = tile.FlagDrawEntity?"OFF":"ON";
-			break;
-		default:
-            return;
-		}
-
-		MessageFerrisMisc packet = new MessageFerrisMisc(blockposX,blockposY,blockposZ,
-				this.GUINameMap.get(button.id).flag , data, textField.getText().getBytes(Charsets.UTF_8));
-	    MFW_PacketHandler.INSTANCE.sendToServer(packet);
-	}
     
 	
     ////////////////////////////text field//////////////////////////////////
@@ -258,26 +410,26 @@ public class GUIStoryBoard extends GuiContainer {
      */
     protected void keyTyped(char p_73869_1_, int p_73869_2_)
     {
-        if (this.textField.textboxKeyTyped(p_73869_1_, p_73869_2_))
-        {
-//        	ERC_Logger.info("name:"+textField.getText());
-            this.writeName();
-        }
-        else
-        {
-            super.keyTyped(p_73869_1_, p_73869_2_);
-        }
+    	for( GuiTextField textField : textFieldList)
+    	{
+	        if (textField.textboxKeyTyped(p_73869_1_, p_73869_2_))
+	        {
+	            this.writeName();
+	            return;
+	        }
+    	}
+        super.keyTyped(p_73869_1_, p_73869_2_);
     }
     
     private void writeName()
     {
-        String s = this.textField.getText();
-        Slot slot = this.inventorySlots.getSlot(0);
-
-        if (slot != null && slot.getHasStack() && !slot.getStack().hasDisplayName() && s.equals(slot.getStack().getDisplayName()))
-        {
-            s = "";
-        }
+//        String s = this.textField.getText();
+//        Slot slot = this.inventorySlots.getSlot(0);
+//
+//        if (slot != null && slot.getHasStack() && !slot.getStack().hasDisplayName() && s.equals(slot.getStack().getDisplayName()))
+//        {
+//            s = "";
+//        }
 
 //        tile.wheelName = s;
 //       ((ERC_ContainerFerris)this.inventorySlots).updateItemName(s);
@@ -290,18 +442,13 @@ public class GUIStoryBoard extends GuiContainer {
     protected void mouseClicked(int p_73864_1_, int p_73864_2_, int p_73864_3_)
     {
         super.mouseClicked(p_73864_1_, p_73864_2_, p_73864_3_);
-        this.textField.mouseClicked(p_73864_1_, p_73864_2_, p_73864_3_);
+        for(GuiTextField textField : textFieldList)
+    	{
+        	textField.mouseClicked(p_73864_1_, p_73864_2_, p_73864_3_);
+    	}
+        
     }
     
-    /**
-     * Draws the screen and all the components in it.
-     */
-    public void drawScreen(int p_73863_1_, int p_73863_2_, float p_73863_3_)
-    {
-        super.drawScreen(p_73863_1_, p_73863_2_, p_73863_3_);
-        GL11.glDisable(GL11.GL_LIGHTING);
-        GL11.glDisable(GL11.GL_BLEND);
-        this.textField.drawTextBox();
-    }
+    
     
 }
