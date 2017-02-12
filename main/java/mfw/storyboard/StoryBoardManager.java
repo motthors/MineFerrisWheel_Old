@@ -1,9 +1,13 @@
 package mfw.storyboard;
 
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
 
+import mfw._core.MFW_Logger;
 import mfw.storyboard.programpanel.IProgramPanel;
 import mfw.storyboard.programpanel.IProgramPanel.Mode;
+import mfw.storyboard.programpanel.LoopPanel;
 import mfw.storyboard.programpanel.SetValuePanel;
 import mfw.storyboard.programpanel.TimerPanel;
 import mfw.tileEntity.TileEntityFerrisWheel;
@@ -13,56 +17,221 @@ public class StoryBoardManager {
 	//texture array
 	
 	TileEntityFerrisWheel tile;
+	String savedSerialCode;
 	
 	//gui
 	
-	private ArrayList<IProgramPanel> PanelList;
-	private IProgramPanel nowTargetPanel;
+	protected ArrayList<IProgramPanel> PanelList;
+	protected Iterator<IProgramPanel> nowTargetPanelItr;
+	protected LinkedList<IProgramPanel> runningPanelList;
+	protected IProgramPanel nowTargetPanel;
 	
 	public StoryBoardManager(TileEntityFerrisWheel tile)
 	{
+		Init(tile);
+	}
+	
+	public void Init(TileEntityFerrisWheel tile)
+	{
 		this.tile = tile;
+		savedSerialCode = "";
 		PanelList = new ArrayList<IProgramPanel>();
+		runningPanelList = new LinkedList<IProgramPanel>();
 	}
 	
-	public void addPanel()
+	protected boolean isInLoop = false;
+	protected LoopPanel looppanel = null;
+	public void addPanel(IProgramPanel panel)
 	{
-		PanelList.add(new SetValuePanel());
-	}
-	
-	public void insertPanel(int idx)
-	{
-//		PanelList.add(idx, new IProgramPanel());
+		if(isInLoop){
+			if(panel.getMode()==IProgramPanel.Mode.loopend){
+				isInLoop = false;
+				return;
+			}
+			looppanel.addPanel(panel);
+			return;
+		}
+		if(panel.getMode()==IProgramPanel.Mode.loop){
+			isInLoop = true;
+			looppanel = (LoopPanel) panel;
+		}
+		PanelList.add(panel);
+		return;
 	}
 	
 	public void clear()
 	{
+		isInLoop = false;
+		nowTargetPanel = null;
 		PanelList.clear();
+		runningPanelList.clear();
 	}
 	
 	public ArrayList<IProgramPanel> getPanelList()
 	{
-		return PanelList;
+		ArrayList<IProgramPanel> result = new ArrayList<IProgramPanel>();
+		for(IProgramPanel panel : PanelList)
+		{
+			result.add(panel);
+			panel.insertSubPanelToList(result);
+		}
+		return result;
 	}
 	
+	public void SetNextPanel()
+	{
+		boolean candonext = false;
+		do
+		{
+			if(nowTargetPanelItr.hasNext())
+			{
+				nowTargetPanel = nowTargetPanelItr.next();
+				nowTargetPanel.start();
+				candonext = nowTargetPanel.CanDoNext();
+				runningPanelList.add(nowTargetPanel);
+			}else{
+				nowTargetPanel = null;
+				candonext = false;
+			}
+		}while(candonext);
+	}
+	
+	public void OnRSEnable()
+	{
+		Start();
+	}
+	
+	public void Start()
+	{
+		if(nowTargetPanel == null)
+		{
+			nowTargetPanelItr = PanelList.iterator();
+			SetNextPanel();
+		}
+	}
+	
+	public void RunAnimation()
+	{
+		if(runningPanelList.size() > 0)
+		{
+			for(int i=0; i<runningPanelList.size(); ++i)
+			{
+				IProgramPanel panel = runningPanelList.get(i);
+				boolean isFinished = panel.run();
+				if(isFinished && panel.equals(nowTargetPanel))
+				{
+					SetNextPanel();
+				}
+				if(isFinished)
+				{
+					runningPanelList.remove(panel);
+					i--;
+				}
+				else break;
+			}
+		}
+	}
+	
+	public void stop()
+	{
+		nowTargetPanel = null;
+		runningPanelList.clear();
+	}
+	
+	public String getSerialCode()
+	{
+		String serial = "";
+		for(IProgramPanel panel : PanelList)
+		{
+			serial += panel.toString();
+		}
+		MFW_Logger.debugInfo("create serial : "+serial);
+		return serial;
+	}
+	
+	public boolean createFromSerialCode(String source)
+	{
+		try{
+			if(savedSerialCode.equals(source))return false;
+			this.clear();
+			if(source.equals(""))return true;
+			MFW_Logger.debugInfo("recieve serial : "+source);
+			source.replace("\r\n", "");
+			source.replace("\n", "");
+			source.replace(" ", "");
+			int start = 0;
+			
+			while(true)
+			{
+				char id = source.charAt(0);
+				int end = source.indexOf("#");
+				if(id == 'L'){
+					end = findLoopEndCode(source);
+				}
+				if(end < 0)return false;
+				String sub = source.substring(start, end);
+				source = source.substring(end+1);
+				
+				//decode
+				{
+					IProgramPanel panel = createPanel_forSerial(id);
+					panel.Init(this.tile);
+					panel.fromString(sub);
+					PanelList.add(panel);
+				}
+				if("".equals(source))break;
+			}
+
+			savedSerialCode = getSerialCode();
+		}catch(Exception e){return false;}
+		return true;
+	}
+	
+	private int findLoopEndCode(String code)
+	{
+		//Å‰‚ÌŠ‡ŒÊ‚Ü‚ÅˆÚ“®
+		int end = code.length();
+		int i = code.indexOf("[");
+		//‚»‚ÌŽŸ‚©‚ç•Â‚¶‚éŠ‡ŒÊ‚ðŒ©‚Â‚¯‚é‚Ü‚Å’Tõ@‚³‚ç‚ÉŠ‡ŒÊ‚ÅIdx+1A•Â‚¶Š‡ŒÊ‚Å-1A‚O‚Ì‚Æ‚«‚É•Â‚¶Š‡ŒÊ‚ÅI—¹
+		i++;
+		int idx = 0;
+		while(true){
+			if(code.charAt(i) == '[')idx++;
+			if(code.charAt(i) == ']'){
+				if(idx==0)return i+1;
+				else idx--;
+			}
+			i++;
+			if(i>=end)return -1;
+		}
+	}
+	
+	public static IProgramPanel createPanel_forSerial(char mode)
+	{
+		switch(mode){
+		case 'S' : return createPanel(Mode.set);
+		case 'T' : return createPanel(Mode.timer);
+		case 'L' : return createPanel(Mode.loop);
+		}
+		return createPanel(Mode.set);
+	}
 	public static IProgramPanel createPanel(String mode)
 	{
 		switch(mode){
 		case "set" : return createPanel(Mode.set);
 		case "timer" : return createPanel(Mode.timer);
+		case "loop" : return createPanel(Mode.loop);
 		}
-		return null;
+		return createPanel(Mode.set);
 	}
 	public static IProgramPanel createPanel(IProgramPanel.Mode mode)
 	{
 		switch(mode){
 		case set : return new SetValuePanel();
 		case timer : return new TimerPanel();
+		case loop : return new LoopPanel();
 		}
-		return null;
+		return new SetValuePanel();
 	}
-	
-	//run
-	
-	//drawgui
+
 }

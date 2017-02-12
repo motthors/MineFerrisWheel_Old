@@ -68,7 +68,7 @@ public class MessageFerrisMisc implements IMessage, IMessageHandler<MessageFerri
 	
 	public static final int GUIOpenStoryBoard = 600;
 	public static final int GUICloseStoryBoard = 601;
-	public static final int GUIStoryBoardAddPanel = 602;
+	public static final int GUIStoryBoardSendData = 602;
 	
 	public static final int GUIBackPartGUIOpen = 9999;
 	public static final int GUISubPartGUIOpenBase = 10000; // +ƒ¿
@@ -230,13 +230,6 @@ public class MessageFerrisMisc implements IMessage, IMessageHandler<MessageFerri
     	case GUICoreLock :
     		((TileEntityFerrisWheel)tile).getRootParent().toggleLock();
     		return null;
-    		
-    	case GUIOpenStoryBoard:
-    		player.openGui(MFW_Core.INSTANCE, MFW_Core.GUIID_FerrisStoryBoard, player.worldObj, message.x, message.y, message.z);
-			return null;
-    	case GUICloseStoryBoard :
-    		player.openGui(MFW_Core.INSTANCE, MFW_Core.GUIID_FerrisCore, player.worldObj, message.x, message.y, message.z);
-			return null;
 			
     	case GUICoreStop:
     		((TileEntityFerrisWheel) tile).getSelectedPartTile().toggleStopFlag();
@@ -250,7 +243,24 @@ public class MessageFerrisMisc implements IMessage, IMessageHandler<MessageFerri
     	case GUICoreRSFlagRotate :
     		((TileEntityFerrisWheel)tile).getSelectedPartTile().rotateRSFlag();
     		break;
-    		////////////////////////////////////GUI Cutter/////////////////////////////
+    		
+		////////////////////////////////////StoryBoard/////////////////////////////
+
+    	case GUIOpenStoryBoard:
+    		player.openGui(MFW_Core.INSTANCE, MFW_Core.GUIID_FerrisStoryBoard, player.worldObj, message.x, message.y, message.z);
+    		return null;
+    	case GUICloseStoryBoard :
+    		player.openGui(MFW_Core.INSTANCE, MFW_Core.GUIID_FerrisCore, player.worldObj, message.x, message.y, message.z);
+    		return null;
+    	case GUIStoryBoardSendData :
+    		String serial = (message.arrayByte != null) ? new String(message.arrayByte) : "";
+    		((TileEntityFerrisWheel)tile)
+	    		.getSelectedPartTile()
+	    		.getStoryBoardManager()
+	    		.createFromSerialCode(serial);
+    		break;
+    		
+		////////////////////////////////////GUI Cutter/////////////////////////////
     		
     	case GUIFerrisCutterX:
     	case GUIFerrisCutterY:

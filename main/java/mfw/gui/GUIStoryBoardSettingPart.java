@@ -5,10 +5,11 @@ import java.util.Map;
 
 import javax.swing.ButtonGroup;
 
+import org.apache.commons.lang3.math.NumberUtils;
+
 import cpw.mods.fml.client.config.GuiButtonExt;
 import mfw._core.MFW_Logger;
 import mfw.gui.GUIStoryBoard.buttonGroup;
-import mfw.storyboard.GuiTextFieldExt;
 import mfw.storyboard.programpanel.IProgramPanel;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
@@ -21,7 +22,7 @@ public class GUIStoryBoardSettingPart {
 	int buttonid;
 	int textid;
 	GuiButton button;
-	GuiTextField textField;
+	GuiTextFieldExt textField;
 	
 	String description;
 	
@@ -82,6 +83,18 @@ public class GUIStoryBoardSettingPart {
 			textField.setText(value);
 			break;
 		default : break;
+		}
+	}
+	
+	public String getValue()
+	{
+		switch(type)
+		{
+		case change : 
+			return button.displayString;
+		case inputvalue	:
+			return textField.getText();
+		default : return "";
 		}
 	}
 	

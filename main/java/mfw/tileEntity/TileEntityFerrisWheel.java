@@ -35,8 +35,8 @@ import net.minecraft.world.World;
 
 public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory, I_FerrisPart {
 
-	public float rotation = 0;
-	public float prevRotation = 0;
+	public float angle = 0, prevAngle = 0;
+	public float rotation = 0, prevRotation = 0;
 	public float rotSpeed = 0;
 	public float rotAccel = 0;
 	public float rotResist = 0.1f;
@@ -67,7 +67,7 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	
 	private float rspower;
 	private float prevRSPower;
-	public byte isToggleNow; // 0:non  1:off to ON  2:on to OFF
+	public byte isToggleNow; // 0:non  1:off to ON  -1:on to OFF
 	TileEntityFerrisWheel rootParentTile;
 	
 	// ÇQé≤âÒì]ëŒâûï`âÊópâÒì]É}ÉgÉäÉNÉXópé≤ê›íË
@@ -753,6 +753,10 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 		
 		switch(rotFlag)
 		{
+		case rotFlag_StoryBoard :
+			if(isToggleNow == 1)storyboardManager.OnRSEnable();
+			storyboardManager.RunAnimation();
+			//no break
 		case rotFlag_Normal : 
 			rotSpeed *= (1f - rotResist);
 			if(!stopFlag)rotSpeed += rotAccel*rotResist*getSpeedRatioFromRSFlag();
@@ -784,9 +788,6 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 			}
 			break;
 		
-		case rotFlag_StoryBoard :
-			////////////////////////////////////////////////
-			break;
 			
 		case rotFlag_Move_RsOnToggle :
 			if(isToggleNow == 1){
@@ -998,6 +999,7 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 			parentsyncY = nbt.getInteger("parentsyncy");
 			parentsyncZ = nbt.getInteger("parentsyncz");
 		}
+		storyboardManager.createFromSerialCode(nbt.getString("storyboard"));
 	}
 	
 	public void readRootWheelFromNBT(NBTTagCompound nbt)
@@ -1065,6 +1067,7 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 		nbt.setInteger("parentsyncx", parentsyncX);
 		nbt.setInteger("parentsyncy", parentsyncY);
 		nbt.setInteger("parentsyncz", parentsyncZ);
+		nbt.setString("storyboard", storyboardManager.getSerialCode());
 	}
 	
 	public void writeRootWheelToNBT(NBTTagCompound nbt)

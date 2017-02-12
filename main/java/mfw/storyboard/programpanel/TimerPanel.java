@@ -1,21 +1,24 @@
 package mfw.storyboard.programpanel;
 
-import java.util.function.Consumer;
+import java.nio.ByteBuffer;
+import java.util.List;
 
-import mfw.storyboard.programpanel.IProgramPanel.Mode;
-import mfw.storyboard.programpanel.IProgramPanel.Type;
+import mfw._core.MFW_Logger;
 import mfw.tileEntity.TileEntityFerrisWheel;
 
 public class TimerPanel implements IProgramPanel {
 	
 	private static DataPack[] datapacks = {
-			new DataPack(Type.inputvalue, "Second", 0.0),
-			new DataPack(Type.inputvalue, "Tick", 0),
+			new DataPack(Type.inputvalue, "Second"),
+			new DataPack(Type.inputvalue, "Tick"),
 	};
 	private TileEntityFerrisWheel tile;
 	
+	final int id_Time = 0;
+	final int id_Tick = 1;
+	
 	int tickTimeCount;
-	int tickTimeMax;
+	int tickTimeTarget;
 
 	@Override
 	public void Init(TileEntityFerrisWheel tile) 
@@ -32,6 +35,10 @@ public class TimerPanel implements IProgramPanel {
 	public int ApiNum(){ return 2; }
 	
 	@Override
+	public void insertSubPanelToList(List<IProgramPanel> inout_panel)
+	{}
+	
+	@Override
 	public Type getType(int apiIndex){
 		return datapacks[apiIndex].type;
 	}
@@ -42,13 +49,19 @@ public class TimerPanel implements IProgramPanel {
 	}
 	
 	@Override
+	public int[] Clicked(int apiIndex)
+	{
+		return new int[]{};
+	}
+	
+	@Override
 	public String getValue(int apiIndex){
-		Object value = datapacks[apiIndex].value;
-		if(apiIndex==0)
-			return String.format("%.2f",value);
-		if(apiIndex==1)
-			return value.toString();
-		return null;
+		switch(apiIndex)
+		{
+		case id_Tick : return ""+tickTimeTarget;
+		case id_Time : return String.format("%.2f",tickTimeTarget/20.0);
+		}
+		return "";
 	}
 	
 	/**
@@ -57,12 +70,15 @@ public class TimerPanel implements IProgramPanel {
 	@Override
 	public int[] setValue(int apiIndex, Object value) {
 		try{
-		tickTimeMax = (int)(Double.parseDouble((String)value) * 20);
-		if(apiIndex==1)tickTimeMax /= 20;
-		datapacks[0].value = (float)tickTimeMax / 20.0;
-		datapacks[1].value = (int)tickTimeMax;
-		return new int[]{0,1};
+			double v = (double)(Double.parseDouble((String)value));
+			switch(apiIndex)
+			{
+			case id_Tick : tickTimeTarget = (int)v ; break;
+			case id_Time : tickTimeTarget = (int)(v*20); break;
+			}
+			return new int[]{id_Tick,id_Time};
 		}catch(NumberFormatException e){
+			
 			return new int[]{};
 		}
 	}
@@ -71,14 +87,37 @@ public class TimerPanel implements IProgramPanel {
 	public void start()
 	{
 		tickTimeCount = 0;
+		canDispose = false;
+	}
+	
+	private boolean canDispose = false;
+	@Override
+	public boolean CanDoNext()
+	{
+		return canDispose;
 	}
 	
 	@Override
 	public boolean run() {
-		if(tickTimeCount == tickTimeMax)return true;
+		if(tickTimeCount >= tickTimeTarget)
+		{
+			canDispose = true;
+			return true;
+		}
 		tickTimeCount ++ ;
-		return false;
+		return canDispose;
 	}
 
-	
+	@Override
+	public String toString()
+	{
+		return "Tx"+tickTimeTarget+"#";
+	}
+
+	@Override
+	public void fromString(String source)
+	{
+		String[] p = source.split("x");
+		setValue(id_Tick, p[1]);
+	}
 }

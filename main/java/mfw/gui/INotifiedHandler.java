@@ -1,4 +1,4 @@
-package mfw.storyboard;
+package mfw.gui;
 
 public interface INotifiedHandler {
 
