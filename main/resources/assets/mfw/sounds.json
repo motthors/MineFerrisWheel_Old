@@ -1,8 +1,6 @@
 {
   "complete":{
     "category":"master",
-    "sounds":[
-  	"items/complete"
-    ]
+    "sounds":["items/complete"]
   }
 }

@@ -23,7 +23,7 @@ public class GuiTextFieldExt extends GuiTextField {
 	{
 		if(c=='\r'){
 			handler.actionPerformed(this);
-			return false;
+			return true;
 		}
 		if(( c < '0'|| '9' < c ) && c != '.' && c != '-' && c != 0 && c!='\b') return false;
 		return super.textboxKeyTyped(c, keycode);

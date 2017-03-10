@@ -1,10 +1,12 @@
 package mfw.storyboard.programpanel;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.omg.PortableServer.ID_ASSIGNMENT_POLICY_ID;
 
+import mfw._core.MFW_Logger;
 import mfw.storyboard.StoryBoardManager;
 import mfw.tileEntity.TileEntityFerrisWheel;
 
@@ -129,9 +131,16 @@ public class LoopPanel extends StoryBoardManager implements IProgramPanel {
 	}
 
 	@Override
+	public void RSHandler(){}
+	@Override
+	public void NotifyHandler(){}
+	
+	@Override
 	public String toString()
 	{
-		return "Lx"+LoopNum+"x["+getSerialCode()+"]#";
+		String subcode = "";
+		for(IProgramPanel panel : PanelList)subcode += panel.toString();
+		return "Lx"+LoopNum+"x["+subcode+"];";
 	}
 	
 	@Override
@@ -143,6 +152,64 @@ public class LoopPanel extends StoryBoardManager implements IProgramPanel {
 		setValue(id_ChildrenDataSource, childrenSource);
 		String[] p = source.split("x");
 		setValue(id_loopNum, p[1]);
+	}
+	
+	@Override
+	public String getSerialCode()
+	{
+		String serial = "";
+		for(IProgramPanel panel : PanelList){serial += panel.toString();}
+		//MFW_Logger.debugInfo("create serial : "+serial);
+		return serial;
+	}
+	
+	@Override
+	public boolean createFromSerialCode(String source)
+	{
+		ArrayList<IProgramPanel> keep = (ArrayList<IProgramPanel>) PanelList.clone();
+		try{
+			if(savedSerialCode.equals(source))return false;
+			this.clear();
+			if(source.equals(""))return true;
+			//MFW_Logger.debugInfo("recieve serial : "+source);
+			source.replace("\r\n", "");
+			source.replace("\n", "");
+			source.replace(" ", "");
+			int start = 0;
+			
+			while(true)
+			{
+				if("".equals(source))break;
+				char id = source.charAt(0);
+				int end = source.indexOf(";");
+				if(id == 'L'){
+					end = findLoopEndCode(source);
+				}
+				if(end < 0)return false;
+				String sub = source.substring(start, end);
+				source = source.substring(end+1);
+				
+				//decode
+				{
+					IProgramPanel panel = createPanel_forSerial(id);
+					panel.Init(this.tile);
+					panel.fromString(sub);
+					PanelList.add(panel); //MFW_Logger.debugInfo("add "+panel);
+				}
+			}
+
+			savedSerialCode = getSerialCode();
+		}catch(Exception e){
+			PanelList = keep;
+			return false;
+		}
+		return true;
+	}
+	
+	@Override
+	public String displayDescription()
+	{
+		return "Loop "+LoopNum+" time(s)";
 	}
 	
 	public class LoopEndPanel implements IProgramPanel{
@@ -193,7 +260,7 @@ public class LoopPanel extends StoryBoardManager implements IProgramPanel {
 
 		@Override
 		public int[] setValue(int apiIndex, Object value) {
-			return null;
+			return new int[]{};
 		}
 
 		@Override
@@ -211,6 +278,11 @@ public class LoopPanel extends StoryBoardManager implements IProgramPanel {
 		}
 		
 		@Override
+		public void RSHandler(){}
+		@Override
+		public void NotifyHandler(){}
+		
+		@Override
 		public String toString()
 		{
 			return "";
@@ -219,6 +291,12 @@ public class LoopPanel extends StoryBoardManager implements IProgramPanel {
 		@Override
 		public void fromString(String source)
 		{
+		}
+		
+		@Override
+		public String displayDescription()
+		{
+			return "";
 		}
 	}
 }

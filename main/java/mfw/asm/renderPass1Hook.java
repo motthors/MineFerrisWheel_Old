@@ -80,7 +80,7 @@ public class renderPass1Hook {
             	double y = (double)tile.yCoord - TileEntityRendererDispatcher.staticPlayerY;
             	double z = (double)tile.zCoord - TileEntityRendererDispatcher.staticPlayerZ;
             	GL11.glTranslated(x, y, z);
-            	tile.renderChildrenPostPass(x,y,z,f);
+            	tile.renderThisPostPass(x,y,z,f);
             	GL11.glPopMatrix();
             }		
             deque.clear();

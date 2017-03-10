@@ -7,9 +7,13 @@ import java.util.LinkedList;
 import mfw._core.MFW_Logger;
 import mfw.storyboard.programpanel.IProgramPanel;
 import mfw.storyboard.programpanel.IProgramPanel.Mode;
+import mfw.storyboard.programpanel.KeyFramePanel;
 import mfw.storyboard.programpanel.LoopPanel;
+import mfw.storyboard.programpanel.NotifyPanel;
 import mfw.storyboard.programpanel.SetValuePanel;
+import mfw.storyboard.programpanel.SoundPanel;
 import mfw.storyboard.programpanel.TimerPanel;
+import mfw.storyboard.programpanel.WaitPanel;
 import mfw.tileEntity.TileEntityFerrisWheel;
 
 public class StoryBoardManager {
@@ -17,7 +21,8 @@ public class StoryBoardManager {
 	//texture array
 	
 	TileEntityFerrisWheel tile;
-	String savedSerialCode;
+	protected String savedSerialCode;
+	public WaitPanel startWaitPanel = new WaitPanel();
 	
 	//gui
 	
@@ -37,6 +42,9 @@ public class StoryBoardManager {
 		savedSerialCode = "";
 		PanelList = new ArrayList<IProgramPanel>();
 		runningPanelList = new LinkedList<IProgramPanel>();
+		
+		clear();
+		startWaitPanel.Init(tile);
 	}
 	
 	protected boolean isInLoop = false;
@@ -65,6 +73,7 @@ public class StoryBoardManager {
 		nowTargetPanel = null;
 		PanelList.clear();
 		runningPanelList.clear();
+		startWaitPanel.start();
 	}
 	
 	public ArrayList<IProgramPanel> getPanelList()
@@ -88,7 +97,7 @@ public class StoryBoardManager {
 				nowTargetPanel = nowTargetPanelItr.next();
 				nowTargetPanel.start();
 				candonext = nowTargetPanel.CanDoNext();
-				runningPanelList.add(nowTargetPanel);
+				runningPanelList.add(nowTargetPanel);//		MFW_Logger.debugInfo("add "+nowTargetPanel);
 			}else{
 				nowTargetPanel = null;
 				candonext = false;
@@ -98,7 +107,34 @@ public class StoryBoardManager {
 	
 	public void OnRSEnable()
 	{
-		Start();
+		if(runningPanelList.size()==0)
+		{
+			startWaitPanel.RSHandler();
+			if(startWaitPanel.run())
+			{
+				Start();
+			}
+		}
+		else
+		{
+			for(IProgramPanel panel : runningPanelList)panel.RSHandler();
+		}
+	}
+	
+	public void OnNotify()
+	{
+		if(runningPanelList.size()==0)
+		{
+			startWaitPanel.NotifyHandler();
+			if(startWaitPanel.run())
+			{
+				Start();
+			}
+		}
+		else
+		{
+			for(IProgramPanel panel : runningPanelList)panel.NotifyHandler();
+		}
 	}
 	
 	public void Start()
@@ -114,22 +150,22 @@ public class StoryBoardManager {
 	{
 		if(runningPanelList.size() > 0)
 		{
+			//MFW_Logger.debugInfo("###############StartRun###############..."+runningPanelList.size());
 			for(int i=0; i<runningPanelList.size(); ++i)
 			{
 				IProgramPanel panel = runningPanelList.get(i);
-				boolean isFinished = panel.run();
+				boolean isFinished = panel.run();	//MFW_Logger.debugInfo("do "+panel);
 				if(isFinished && panel.equals(nowTargetPanel))
 				{
-					SetNextPanel();
+					SetNextPanel();		//MFW_Logger.debugInfo("end "+panel+" and add next ... ... nowtarget="+nowTargetPanel);
 				}
 				if(isFinished)
 				{
-					runningPanelList.remove(panel);
+					runningPanelList.remove(panel);	//MFW_Logger.debugInfo("remove "+panel);
 					i--;
 				}
-				else break;
 			}
-		}
+		}else startWaitPanel.start(); // reset
 	}
 	
 	public void stop()
@@ -141,30 +177,47 @@ public class StoryBoardManager {
 	public String getSerialCode()
 	{
 		String serial = "";
+		serial += startWaitPanel.toString();
 		for(IProgramPanel panel : PanelList)
 		{
 			serial += panel.toString();
 		}
-		MFW_Logger.debugInfo("create serial : "+serial);
+		//MFW_Logger.debugInfo("create serial : "+serial);
 		return serial;
 	}
 	
 	public boolean createFromSerialCode(String source)
 	{
+		ArrayList<IProgramPanel> keep = (ArrayList<IProgramPanel>) PanelList.clone();
 		try{
 			if(savedSerialCode.equals(source))return false;
 			this.clear();
 			if(source.equals(""))return true;
-			MFW_Logger.debugInfo("recieve serial : "+source);
+			//MFW_Logger.debugInfo("recieve serial : " + tile.WheelName + source);
 			source.replace("\r\n", "");
 			source.replace("\n", "");
 			source.replace(" ", "");
 			int start = 0;
 			
-			while(true)
+			//for startwaitpanel
 			{
 				char id = source.charAt(0);
-				int end = source.indexOf("#");
+				if(id != 'W')new Exception();
+				int end = source.indexOf(";");
+				String sub = source.substring(start, end);
+				source = source.substring(end+1);
+				//decode
+				{
+					IProgramPanel panel = this.startWaitPanel;
+					panel.Init(this.tile);
+					panel.fromString(sub); //MFW_Logger.debugInfo("set startwait "+panel);
+				}
+			}
+			while(true)
+			{
+				if("".equals(source))break;
+				char id = source.charAt(0);
+				int end = source.indexOf(";");
 				if(id == 'L'){
 					end = findLoopEndCode(source);
 				}
@@ -177,17 +230,19 @@ public class StoryBoardManager {
 					IProgramPanel panel = createPanel_forSerial(id);
 					panel.Init(this.tile);
 					panel.fromString(sub);
-					PanelList.add(panel);
+					PanelList.add(panel); //MFW_Logger.debugInfo("add "+panel);
 				}
-				if("".equals(source))break;
 			}
 
 			savedSerialCode = getSerialCode();
-		}catch(Exception e){return false;}
+		}catch(Exception e){
+			PanelList = keep;
+			return false;
+		}
 		return true;
 	}
 	
-	private int findLoopEndCode(String code)
+	protected int findLoopEndCode(String code)
 	{
 		//ç≈èâÇÃäáå Ç‹Ç≈à⁄ìÆ
 		int end = code.length();
@@ -212,17 +267,17 @@ public class StoryBoardManager {
 		case 'S' : return createPanel(Mode.set);
 		case 'T' : return createPanel(Mode.timer);
 		case 'L' : return createPanel(Mode.loop);
+		case 'k' : 
+		case 'K' : return createPanel(Mode.keyframe);
+		case 'W' : return createPanel(Mode.wait);
+		case 'N' : return createPanel(Mode.notify);
+		case 'M' : return createPanel(Mode.sound);
 		}
 		return createPanel(Mode.set);
 	}
 	public static IProgramPanel createPanel(String mode)
 	{
-		switch(mode){
-		case "set" : return createPanel(Mode.set);
-		case "timer" : return createPanel(Mode.timer);
-		case "loop" : return createPanel(Mode.loop);
-		}
-		return createPanel(Mode.set);
+		return createPanel(Mode.getType(mode));
 	}
 	public static IProgramPanel createPanel(IProgramPanel.Mode mode)
 	{
@@ -230,6 +285,11 @@ public class StoryBoardManager {
 		case set : return new SetValuePanel();
 		case timer : return new TimerPanel();
 		case loop : return new LoopPanel();
+		case keyframe : return new KeyFramePanel();
+		case wait : return new WaitPanel();
+		case notify : return new NotifyPanel();
+		case sound : return new SoundPanel();
+		case loopend : return null;
 		}
 		return new SetValuePanel();
 	}

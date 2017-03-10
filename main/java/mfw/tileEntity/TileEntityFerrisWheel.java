@@ -6,14 +6,19 @@ import java.util.List;
 
 import org.lwjgl.opengl.GL11;
 
-import MTYlib.blocksReplication.BlocksReplication;
+import cpw.mods.fml.common.FMLCommonHandler;
 import mfw._core.MFW_Command;
 import mfw._core.MFW_Core;
+import mfw._core.MFW_Logger;
 import mfw._core.connectPos;
+import mfw.blocksReplication.BlocksReplication;
 import mfw.entity.entityFerrisBasket;
 import mfw.item.itemBlockFerrisCore;
+import mfw.lib_util.InterpolationTick;
 import mfw.math.MFW_Math;
 import mfw.message.MessageFerrisMisc;
+import mfw.sound.FerrisFrameSound;
+import mfw.sound.SoundManager;
 import mfw.storyboard.StoryBoardManager;
 import mfw.util.MFWBlockAccess;
 import mfw.wrapper.I_FerrisPart;
@@ -32,16 +37,19 @@ import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.StatCollector;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
+import sun.nio.cs.ArrayEncoder;
 
 public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory, I_FerrisPart {
 
 	public float angle = 0, prevAngle = 0;
-	public float rotation = 0, prevRotation = 0;
+	public InterpolationTick rotation = new InterpolationTick(0);
 	public float rotSpeed = 0;
 	public float rotAccel = 0;
 	public float rotResist = 0.1f;
-	public float rotMiscFloat1 = 1;
-	public float rotMiscFloat2 = 0;
+	private float speedTemp;
+	public InterpolationTick rotMiscFloat1 = new InterpolationTick(1f);
+	public InterpolationTick rotMiscFloat2 = new InterpolationTick(0);
+	public InterpolationTick wheelSize = new InterpolationTick(1.0f);
 	public boolean stopFlag = false;
 	public int   side;
 	public int 	 meta;
@@ -78,6 +86,7 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	
 	private int copyNum = 1;
 	private float copyRotOffset = 0;
+	private int copyMode = 0;
 	// variable rotation axis
 	public float rotVar1 = 0, rotVar2 = 0;
 	// CTM—pŠî€
@@ -97,8 +106,6 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	float prevPosX,prevPosY,prevPosZ;
 	public connectPos ConnectPos = new connectPos();
 	
-	public float wheelSize = 1.0f;
-	
 	// for GUI
 	TileEntityFerrisWheel selectedPartTile = null;
 	public String WheelName;
@@ -110,6 +117,27 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	
 	//storyboard
 	private StoryBoardManager storyboardManager = new StoryBoardManager(this);
+	
+	//sound
+	private int soundidx = 0;
+	public FerrisFrameSound sound;
+	public void SetSoundIndex(int idx){
+		if(soundidx != idx){
+			if(idx >= SoundManager.sounds.size())idx = 0;
+			soundidx = idx;
+			if(sound!=null)sound.Invalid();
+			if(idx==0)return;
+			String domain = SoundManager.getSoundDomain(idx);
+			if(FMLCommonHandler.instance().getEffectiveSide().isClient())
+			{
+				FerrisFrameSound sound = new FerrisFrameSound(this, MFW_Core.proxy.getClientPlayer(), "mfw:"+domain);
+				this.sound = sound;
+				MFW_Core.proxy.PlaySound(sound);
+				MFW_Logger.debugInfo("sound register "+domain);
+			}
+		}
+	}
+	public int GetSoundIndex(){ return soundidx; }
 	
 	int orgsize;
 	byte[] compressedModelData;
@@ -167,6 +195,7 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	public boolean onPushChildPart(int num)
 	{
 		if(ArrayEntityParts.length==0)return false;
+		if(num < 0 || ArrayEntityParts.length <= num)return false;
 		if(ArrayEntityParts[num] instanceof TileEntityFerrisWheel)
 		{
 //			MFW_Logger.debugInfo("onpushchildpart num"+((TileEntityFerrisWheel)ArrayEntityParts[num]).getSizeInventory());
@@ -218,7 +247,11 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	}
 	public float getRSPower()
 	{
-		return rspower;
+		return rootParentTile.rspower;
+	}
+	public float getRSTrigger()
+	{
+		return rootParentTile.isToggleNow;
 	}
 	public String getSRTitleStringForGUI()
 	{
@@ -304,7 +337,7 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 		if(wheelidx >= list.size())return null;
 		return list.get(wheelidx);
 	}
-	private ArrayList<TileEntityFerrisWheel> createWheelList()
+	public ArrayList<TileEntityFerrisWheel> createWheelList()
 	{
 		TileEntityFerrisWheel tile = (TileEntityFerrisWheel) worldObj.getTileEntity(xCoord, yCoord, zCoord);
 		ArrayDeque<TileEntityFerrisWheel> deque = new ArrayDeque<TileEntityFerrisWheel>();
@@ -383,12 +416,14 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	{
 		if(isConstructed)return;
 		copyNum = nbt.getInteger("copynum");
+		copyMode = nbt.getInteger("copymode");
 		int connectnum = nbt.getInteger("mtbr:connectnum");
-		ItemStacks = new ItemStack[connectnum*copyNum];
+		int slotnum = (copyMode==0)?connectnum*copyNum:connectnum;
+		ItemStacks = new ItemStack[slotnum];
 		ArrayEntityParts = new I_FerrisPart[connectnum*copyNum];	
 		this.meta = meta;
 		side = nbt.getByte("constructormetaflag") & 7;
-		blockAccess.setCopyNum(copyNum, side);
+		blockAccess.setCopyNum(copyNum, side, copyMode);
 		BlocksRep.setWorld(worldObj);
 		BlocksRep.setCorePosition(xCoord, yCoord, zCoord);
 		BlocksRep.constructFromTag(nbt, meta, this, isMultiThread);
@@ -468,13 +503,13 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 		}
 		switch(idx)
 		{
-		case 1 : rotMiscFloat1 += v;
-		if(rotMiscFloat1 > 400f)rotMiscFloat1 = 400f;
-		else if(rotMiscFloat1 < -400f)rotMiscFloat1 = -400f;
+		case 1 : 
+			rotMiscFloat1.add(v);
+			rotMiscFloat1.clamp(-400, 400);
 		break;
-		case 2 : rotMiscFloat2 += v; 
-		if(rotMiscFloat1 > 400f)rotMiscFloat1 = 400f;
-		else if(rotMiscFloat1 < -400f)rotMiscFloat1 = -400f;
+		case 2 : 
+			rotMiscFloat2.add(v);
+			rotMiscFloat2.clamp(-400, 400);
 		break;
 		}
 	}
@@ -498,10 +533,11 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 		stopFlag = false;
 		rotAccel = 0;
 		rotSpeed = 0;
-		rotation = 0;
+		rotation.set(0);
 		rotResist = 0.01f;
-		rotMiscFloat1 = 1;
-		rotMiscFloat2 = 0;
+		rotMiscFloat1.set(1);
+		rotMiscFloat2.set(0);
+		speedTemp = 0;
 	}
 	// Sync‚ÆNormal‚ðØ‚è‘Ö‚¦‚é‚½‚ß‚ÌŠÖ”
 	public void changeRotFlag_Sync()
@@ -521,24 +557,23 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	{
 		switch(flag)
 		{
-		case 0 : wheelSize -= 0.1f; break;
-		case 1 : wheelSize -= 0.01f; break;
-		case 2 : wheelSize += 0.01f; break;
-		case 3 : wheelSize += 0.1f; break;
+		case 0 : wheelSize.add(-0.1f); break;
+		case 1 : wheelSize.add(-0.01f); break;
+		case 2 : wheelSize.add(0.01f); break;
+		case 3 : wheelSize.add(0.1f); break;
 		}
-		if(wheelSize > 100f)wheelSize = 100f;
-		else if(wheelSize < 0)wheelSize = 0;
+		wheelSize.clamp(0, 100.0f);
 	}
 	public void setResist(int flag)
 	{
 		switch(flag)
 		{
-		case 0 : rotResist -= 0.01f; break;
-		case 1 : rotResist -= 0.001f; break;
-		case 2 : rotResist += 0.001f; break;
-		case 3 : rotResist += 0.01f; break;
+		case 0 : rotResist *= 1.1f; break;
+		case 1 : rotResist *= 1.01f; break;
+		case 2 : rotResist /= 1.01f; break;
+		case 3 : rotResist /= 1.1f; break;
 		}
-		if(rotResist > 0.5f)rotResist = 0.5f;
+		if(rotResist > 0.99f)rotResist = 0.99f;
 		else if(rotResist < 0.001f)rotResist = 0.001f;
 	}
 	
@@ -565,7 +600,7 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	public void resetRot()
 	{
 		rotVar1 = 0; rotVar2 = 0;
-		wheelSize = 1.0f;
+		wheelSize.set(1.0f);
 	}
 	
 	public void setRotAxis()
@@ -625,7 +660,7 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 		ArrayList<TileEntityFerrisWheel>wheellist = createWheelList();
 		if(compressedModelData==null)return;
 		int i=0;
-		for(TileEntityFerrisWheel tile : wheellist)tile.rotation = afloat[i++];
+		for(TileEntityFerrisWheel tile : wheellist)tile.rotation.set(afloat[i++]);
 	}
 	
 	private int counter=0;
@@ -635,7 +670,7 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 		if(parentTile!=null)return;
 		if(--counter<0)
 		{
-			counter=100;
+			counter=200;
 //			ArrayList<TileEntityFerrisWheel>wheellist = createWheelList();
 //			float[] floatlist = new float[wheellist.size()];
 //			
@@ -705,14 +740,14 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 		isToggleNow = (byte) ((prevRSPower == rspower) ? 0 : rspower==0 ? -1 : 1 );
 		prevRSPower = rspower;
 		
-		prevRotation = rotation;
+		rotation.update();
+		wheelSize.update();
+		rotMiscFloat1.update();
+		rotMiscFloat2.update();
 		calcRotaion();
-		
-		if(rotation>180f)rotation-=360f;
-		else if(rotation<-180f)rotation += 360f;
+
 		blockAccess.updateTileEntity();
 	    
-		prevRotation = MFW_Math.fixrot(rotation, prevRotation);
 		
 		if(parentTile!=null)
 		{
@@ -720,15 +755,16 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 			prevPosY = posY;
 			prevPosZ = posZ;
 			Vec3 pos;
-			pos = MFW_Math.rotateAroundVector(ConnectPos.x, ConnectPos.y, ConnectPos.z, 0, 0, 1, Math.toRadians(-parentTile.rotation));
+			pos = MFW_Math.rotateAroundVector(ConnectPos.x, ConnectPos.y, ConnectPos.z, 0, 0, 1, Math.toRadians(-parentTile.rotation.get()));
 			pos = MFW_Math.rotateAroundVector(pos.xCoord, pos.yCoord, pos.zCoord, 0, 1, 0, Math.toRadians(-parentTile.rotVar2));
 			pos = MFW_Math.rotateAroundVector(pos.xCoord, pos.yCoord, pos.zCoord, 1, 0, 0, Math.toRadians(-parentTile.rotVar1));
 			pos = MFW_Math.rotateAroundVector(pos.xCoord, pos.yCoord, pos.zCoord,
 					rotvecMeta2_side.xCoord, rotvecMeta2_side.yCoord, rotvecMeta2_side.zCoord, Math.toRadians(-parentTile.rotMeta2_side));
 			
-			posX = (float) pos.xCoord*parentTile.wheelSize + parentTile.posX;
-			posY = (float) pos.yCoord*parentTile.wheelSize + parentTile.posY;
-			posZ = (float) pos.zCoord*parentTile.wheelSize + parentTile.posZ;
+			float parentSize = parentTile.wheelSize.get();
+			posX = (float) pos.xCoord*parentSize + parentTile.posX;
+			posY = (float) pos.yCoord*parentSize + parentTile.posY;
+			posZ = (float) pos.zCoord*parentSize + parentTile.posZ;
 //			MFW_Logger.info("x.px:"+posX+"."+prevPosX); 
 		}
 		
@@ -754,60 +790,77 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 		switch(rotFlag)
 		{
 		case rotFlag_StoryBoard :
-			if(isToggleNow == 1)storyboardManager.OnRSEnable();
+			if(getRSTrigger() == 1)storyboardManager.OnRSEnable();
 			storyboardManager.RunAnimation();
 			//no break
+		case rotFlag_Sin :
 		case rotFlag_Normal : 
 			rotSpeed *= (1f - rotResist);
 			if(!stopFlag)rotSpeed += rotAccel*rotResist*getSpeedRatioFromRSFlag();
-			rotation += rotSpeed;
+
+//			break;
+			
+			if(rotFlag==rotFlag_Sin){
+				speedTemp += rotSpeed;
+				if(speedTemp > 180)speedTemp -= 360f;
+				else if(speedTemp < -180)speedTemp += 360f;
+				float sin = (float)Math.sin(Math.toRadians(speedTemp))
+							*rotMiscFloat1.get()*getSpeedRatioFromRSFlag() 
+							+ rotMiscFloat2.get();
+				rotation.set(sin);
+			}
+			else{
+//				speedTemp = rotSpeed;
+				rotation.add(rotSpeed);
+				rotation.round();
+			}
 			break;
-		case rotFlag_Sin : 
-			rotSpeed += rotAccel*0.07*getSpeedRatioFromRSFlag();
-			if(rotSpeed>Math.PI)rotSpeed-=2*Math.PI;
-			else if(rotSpeed<-Math.PI)rotSpeed += 2*Math.PI;
-			rotation = (float)Math.sin(rotSpeed)*rotMiscFloat1*getSpeedRatioFromRSFlag() + rotMiscFloat2;
-			break;
+//		case rotFlag_Sin : 
+//			rotSpeed += rotAccel*0.07*getSpeedRatioFromRSFlag();
+//			if(rotSpeed>Math.PI)rotSpeed-=2*Math.PI;
+//			else if(rotSpeed<-Math.PI)rotSpeed += 2*Math.PI;
+//			rotation.set((float)Math.sin(rotSpeed)*rotMiscFloat1.get()*getSpeedRatioFromRSFlag() + rotMiscFloat2.get());
+//			break;
 		case rotFlag_ComeAndGo : 
-			if(isToggleNow == 1)rotSpeed = 1;
+			if(getRSTrigger() == 1)rotSpeed = 1;
 			if(rotResist > 0){
-				rotation += rotSpeed * rotAccel * getSpeedRatioFromRSFlag();
-				if(rotation >= rotMiscFloat1){
+				rotation.add(rotSpeed * rotAccel * getSpeedRatioFromRSFlag());
+				if(rotation.get() >= rotMiscFloat1.get()){
 					rotSpeed = 0; 
 					rotResist *= -1; 
-					rotation = rotMiscFloat1;
+					rotation.set(rotMiscFloat1.get());
 				} 
 			}
 			else{
-				rotation -= rotSpeed * rotAccel * getSpeedRatioFromRSFlag();
-				if(rotation <= rotMiscFloat2){
+				rotation.add(-rotSpeed * rotAccel * getSpeedRatioFromRSFlag());
+				if(rotation.get() <= rotMiscFloat2.get()){
 					rotSpeed = 0; 
 					rotResist *= -1;
-					rotation = rotMiscFloat2;
+					rotation.set(rotMiscFloat2.get());
 				} 
 			}
 			break;
 		
 			
 		case rotFlag_Move_RsOnToggle :
-			if(isToggleNow == 1){
+			if(getRSTrigger() == 1){
 				rotSpeed = 1;
-				rotResist = rotation + rotMiscFloat1;
+				rotResist = rotation.get() + rotMiscFloat1.get();
 				if(rotResist > 180f)
 				{
 					rotResist-=360f;
-					rotation-=360f;
+					rotation.add(-360f);
 				}
 			}
-			rotation += rotSpeed * rotAccel * getSpeedRatioFromRSFlag();
-			if(rotation >= rotResist){
+			rotation.add(rotSpeed * rotAccel * getSpeedRatioFromRSFlag());
+			if(rotation.get() >= rotResist){
 				rotSpeed = 0; 
-				rotation = rotResist;
+				rotation.set(rotResist);
 			}
 			break;
 		case rotFlag_Sync : 
 			if(parentSyncTile==null)return;
-			rotation = parentSyncTile.rotation*rotMiscFloat1*getSpeedRatioFromRSFlag() + rotMiscFloat2;
+			rotation.set(parentSyncTile.rotation.get()*rotMiscFloat1.get()*getSpeedRatioFromRSFlag() + rotMiscFloat2.get());
 			break;
 		}
 	}
@@ -822,28 +875,29 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 		switch(rsFlag)
 		{
 		case rsFlag_Non : return 1;
-		case rsFlag_StopWhenOn : return (rootParentTile.rspower > 0.01) ? 0 : 1;
-		case rsFlag_StopWhenOff : return (rootParentTile.rspower < 0.01) ? 0 : 1;
-		case rsFlag_RatioPositive : return rootParentTile.rspower;
-		case rsFlag_RatioNegative : return 1f-rootParentTile.rspower;
+		case rsFlag_StopWhenOn : return (getRSPower() > 0.01) ? 0 : 1;
+		case rsFlag_StopWhenOff : return (getRSPower() < 0.01) ? 0 : 1;
+		case rsFlag_RatioPositive : return getRSPower();
+		case rsFlag_RatioNegative : return 1f-getRSPower();
 		}
 		return -1;
 	}
 	
-	public float fixedRenderRotation(float tick)
-	{
-		return prevRotation + (rotation - prevRotation)*tick;
-	}
+//	public float fixedRenderRotation(float tick)
+//	{
+//		return prevRotation + (rotation - prevRotation)*tick;
+//	}
 
-	public void render(float partialtick)
+	public void render(double x, double y, double z, float partialtick)
 	{
-		float rot = fixedRenderRotation(partialtick);
+		float rot = rotation.getFix(partialtick);
 
 		GL11.glRotated(rotMeta2_side, rotvecMeta2_side.xCoord, rotvecMeta2_side.yCoord, rotvecMeta2_side.zCoord);
 		GL11.glRotatef(rotVar1, 1, 0, 0);
 		GL11.glRotatef(rotVar2, 0, 1, 0);
 		GL11.glRotatef(rot, 0, 0, 1);
-		GL11.glScalef(wheelSize, wheelSize, wheelSize);
+		float size = wheelSize.getFix(partialtick);
+		GL11.glScalef(size, size, size);
 		GL11.glPushMatrix();
 		
 		//core
@@ -860,6 +914,7 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 			GL11.glRotated(copyRotOffset, vecAxisRot.xCoord, vecAxisRot.yCoord, vecAxisRot.zCoord);
 			GL11.glTranslatef(-0.5f, -0.5f, -0.5f);
 			BlocksRep.render();
+			if(copyMode==1)renderChildren(x,y,z,partialtick);
 			GL11.glTranslatef(0.5f, 0.5f, 0.5f);
 		}
 		GL11.glPopMatrix();
@@ -878,15 +933,16 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 		GL11.glTranslatef(-0.5f, -0.5f, -0.5f);
 	}
 	
-	public void renderPostPass(float partialtick) 
+	public void renderPostPass(double x, double y, double z, float partialtick) 
 	{
 		
-		float rot = fixedRenderRotation(partialtick);
+		float rot = rotation.getFix(partialtick);
 		GL11.glRotated(rotMeta2_side, rotvecMeta2_side.xCoord, rotvecMeta2_side.yCoord, rotvecMeta2_side.zCoord);
 		GL11.glRotatef(rotVar1, 1, 0, 0);
 		GL11.glRotatef(rotVar2, 0, 1, 0);
 		GL11.glRotatef(rot, 0, 0, 1);
-		GL11.glScalef(wheelSize, wheelSize, wheelSize);
+		float size = wheelSize.getFix(partialtick);
+		GL11.glScalef(size, size, size);
 		GL11.glPushMatrix();
 		GL11.glRotated(rotConst_meta2, rotvecConst_meta2.xCoord, rotvecConst_meta2.yCoord, rotvecConst_meta2.zCoord);
 		
@@ -896,6 +952,7 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 			GL11.glRotated(copyRotOffset, vecAxisRot.xCoord, vecAxisRot.yCoord, vecAxisRot.zCoord);
 			GL11.glTranslatef(-0.5f, -0.5f, -0.5f);
 			BlocksRep.renderPost();
+			if(copyMode==1)renderChildrenPostPass(x,y,z,partialtick);
 			GL11.glTranslatef(0.5f, 0.5f, 0.5f);
 		}
 		GL11.glPopMatrix();
@@ -918,7 +975,7 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 		GL11.glRotated(rotMeta2_side, rotvecMeta2_side.xCoord, rotvecMeta2_side.yCoord, rotvecMeta2_side.zCoord);
 		GL11.glRotatef(rotVar1, 1, 0, 0);
 		GL11.glRotatef(rotVar2, 0, 1, 0);
-		GL11.glRotatef(fixedRenderRotation(f), 0, 0, 1);
+		GL11.glRotatef(rotation.getFix(f), 0, 0, 1);
 //		GL11.glScalef(wheelSize, wheelSize, wheelSize);
 		GL11.glRotated(rotConst_meta2, rotvecConst_meta2.xCoord, rotvecConst_meta2.yCoord, rotvecConst_meta2.zCoord);
 		GL11.glScaled(-1, -1, -1);
@@ -971,17 +1028,18 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	
 	public void my_readFromNBT(NBTTagCompound nbt, int snum)
 	{
-		wheelSize = nbt.getFloat("wsize");
+		wheelSize.Init(nbt.getFloat("wsize"));
 		rotSpeed = nbt.getFloat("speed");
 		if(MFW_Command.doSync)
 		{
-			rotation = nbt.getFloat("rot");
+			rotation.set(nbt.getFloat("rot"));
 			rotSpeed = nbt.getFloat("speed");
+			speedTemp = nbt.getFloat("speedtemp");
 		}
 		rotAccel = nbt.getFloat("accel");
 		rotResist = nbt.getFloat("resist");
-		rotMiscFloat1 = nbt.getFloat("rotMiscfloat1");
-		rotMiscFloat2 = nbt.getFloat("rotMiscfloat2");
+		rotMiscFloat1.set(nbt.getFloat("rotMiscfloat1"));
+		rotMiscFloat2.set(nbt.getFloat("rotMiscfloat2"));
 		this.meta = nbt.getInteger("meta");
 		rotFlag = nbt.getByte("rotflag");
 		rsFlag = nbt.getByte("rsflag");
@@ -1000,6 +1058,7 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 			parentsyncZ = nbt.getInteger("parentsyncz");
 		}
 		storyboardManager.createFromSerialCode(nbt.getString("storyboard"));
+		SetSoundIndex(nbt.getInteger("soundindex"));
 	}
 	
 	public void readRootWheelFromNBT(NBTTagCompound nbt)
@@ -1046,13 +1105,14 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	
 	public void my_writeToNBT(NBTTagCompound nbt, int slotidx)
 	{
-		nbt.setFloat("wsize", wheelSize);
+		nbt.setFloat("wsize", wheelSize.get());
 		nbt.setFloat("speed", rotSpeed);
-		nbt.setFloat("rot", rotation);
+		nbt.setFloat("rot", rotation.get());
 		nbt.setFloat("accel", rotAccel);
 		nbt.setFloat("resist", rotResist);
-		nbt.setFloat("rotMiscfloat1",rotMiscFloat1);
-		nbt.setFloat("rotMiscfloat2",rotMiscFloat2);
+		nbt.setFloat("speedtemp", speedTemp);
+		nbt.setFloat("rotMiscfloat1",rotMiscFloat1.get());
+		nbt.setFloat("rotMiscfloat2",rotMiscFloat2.get());
 		nbt.setInteger("meta", this.meta);
 		nbt.setByte("rotflag", rotFlag);
 		nbt.setByte("rsflag", rsFlag);
@@ -1067,7 +1127,10 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 		nbt.setInteger("parentsyncx", parentsyncX);
 		nbt.setInteger("parentsyncy", parentsyncY);
 		nbt.setInteger("parentsyncz", parentsyncZ);
-		nbt.setString("storyboard", storyboardManager.getSerialCode());
+		nbt.setString("storyboard", storyboardManager.getSerialCode()); 
+		nbt.setInteger("soundindex", GetSoundIndex());
+
+//		MFW_Logger.debugInfo("save : "+ WheelName + " : " + storyboardManager.getSerialCode());
 	}
 	
 	public void writeRootWheelToNBT(NBTTagCompound nbt)
@@ -1252,6 +1315,11 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 		return false;
 	}
 	
+	public void onChunkUnload()
+    {
+		if(sound!=null)sound.Invalid();
+    }
+	
 	///////////////////////////////////i_ferrispart
 	
 	public void init(TileEntityFerrisWheel parent, connectPos cp, int currentidx)
@@ -1268,7 +1336,7 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 		zCoord = parent.zCoord;
 //		rootParentTile = (TileEntityFerrisWheel) worldObj.getTileEntity(xCoord, yCoord, zCoord);
 		rootParentTile = getRootParent();
-		wheelSize = 1.0f;
+		wheelSize.Init(1.0f);
 		isConstructed = false;
 	}
 	
@@ -1307,35 +1375,43 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 //		GL11.glTranslated(ConnectPos.x, ConnectPos.y, ConnectPos.z);
 //		tessellator.setColorOpaque_F(1.0F, 1.0F, 1.0F);
 	}
-	public void renderChildren(double x, double y, double z, float f)
+	public void renderThis(double x, double y, double z, float f)
 	{
 		renderchildpre(x,y,z,f);
-		this.render(f);
+		this.render(x,y,z,f);
+		if(copyMode==0)renderChildren(x,y,z,f);
+	}
+	public void renderChildren(double x, double y, double z, float f)
+	{
 		for( I_FerrisPart p :ArrayEntityParts)
 		{
 			if(p!=null)
 			{
 				GL11.glPushMatrix();
-				p.renderChildren(x, y, z, f);
+				p.renderThis(x, y, z, f);
 				GL11.glPopMatrix();
 			}
 		}
+	}
+	
+	public void renderThisPostPass(double x, double y, double z, float f)
+	{
+		renderchildpre(x,y,z,f);
+		this.renderPostPass(x,y,z,f);
+		if(copyMode==0)renderChildrenPostPass(x, y, z, f);
 	}
 	public void renderChildrenPostPass(double x, double y, double z, float f)
 	{
-		renderchildpre(x,y,z,f);
-		this.renderPostPass(f);
 		for( I_FerrisPart p :ArrayEntityParts)
 		{
 			if(p!=null)
 			{
 				GL11.glPushMatrix();
-				p.renderChildrenPostPass(x, y, z, f);
+				p.renderThisPostPass(x, y, z, f);
 				GL11.glPopMatrix();
 			}
 		}
 	}
-
 	
 	public void dead(){}
 	

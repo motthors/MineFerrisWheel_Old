@@ -4,21 +4,27 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 import mfw._core.MFW_Logger;
+import mfw.storyboard.programpanel.IProgramPanel.DataPack;
+import mfw.storyboard.programpanel.IProgramPanel.Type;
 import mfw.tileEntity.TileEntityFerrisWheel;
+import mfw.wrapper.I_FerrisPart;
 
-public class TimerPanel implements IProgramPanel {
+public class NotifyPanel implements IProgramPanel {
+	
+	private static String[] targets = {
+			"All",
+			"Parent",
+			"Children",
+	};
 	
 	private static DataPack[] datapacks = {
-			new DataPack(Type.inputvalue, "Second"),
-			new DataPack(Type.inputvalue, "Tick"),
+			new DataPack(Type.change, "Target"),
 	};
 	private TileEntityFerrisWheel tile;
 	
-	final int id_Time = 0;
-	final int id_Tick = 1;
+	final int id_Target = 0;
 	
-	int tickTimeCount;
-	int tickTimeTarget;
+	private int index = 0;
 
 	@Override
 	public void Init(TileEntityFerrisWheel tile) 
@@ -28,11 +34,11 @@ public class TimerPanel implements IProgramPanel {
 
 	@Override
 	public Mode getMode() {
-		return Mode.timer;
+		return Mode.notify;
 	}
 	
 	@Override
-	public int ApiNum(){ return 2; }
+	public int ApiNum(){ return 1; }
 	
 	@Override
 	public void insertSubPanelToList(List<IProgramPanel> inout_panel)
@@ -51,17 +57,13 @@ public class TimerPanel implements IProgramPanel {
 	@Override
 	public int[] Clicked(int apiIndex)
 	{
-		return new int[]{};
+		index = (index + 1) % targets.length;
+		return new int[]{apiIndex};
 	}
 	
 	@Override
 	public String getValue(int apiIndex){
-		switch(apiIndex)
-		{
-		case id_Tick : return ""+tickTimeTarget;
-		case id_Time : return String.format("%.2f",tickTimeTarget/20.0);
-		}
-		return "";
+		return targets[index];
 	}
 	
 	/**
@@ -70,23 +72,9 @@ public class TimerPanel implements IProgramPanel {
 	@Override
 	public int[] setValue(int apiIndex, Object value) {
 		try{
-			int[] ret = new int[]{};
-			double v = (double)(Double.parseDouble((String)value));
-			switch(apiIndex)
-			{
-			case id_Tick : 
-				tickTimeTarget = (int)v;
-				ret = new int[]{id_Tick, id_Time};
-				break;
-			case id_Time : 
-				tickTimeTarget = (int)(v*20);
-				ret = new int[]{id_Time, id_Tick};
-				break;
-			}
-			tickTimeTarget = (tickTimeTarget < 0) ? 0 : tickTimeTarget;
-			return ret;
+			index = Integer.parseInt((String) value);
+			return new int[]{apiIndex};
 		}catch(NumberFormatException e){
-			
 			return new int[]{};
 		}
 	}
@@ -94,11 +82,8 @@ public class TimerPanel implements IProgramPanel {
 	@Override
 	public void start()
 	{
-		tickTimeCount = 0;
-		canDispose = false;
 	}
 	
-	private boolean canDispose = false;
 	@Override
 	public boolean CanDoNext()
 	{
@@ -107,13 +92,25 @@ public class TimerPanel implements IProgramPanel {
 	
 	@Override
 	public boolean run() {
-		if(tickTimeCount >= tickTimeTarget)
-		{
-			canDispose = true;
-			return true;
+		switch(index){
+		case 0 : // all
+			for(TileEntityFerrisWheel t : tile.createWheelList()){
+				t.getStoryBoardManager().OnNotify();
+			}
+			break;
+		case 1 : // parent
+			TileEntityFerrisWheel parent = tile.getParentTile();
+			if(parent!=null)parent.getStoryBoardManager().OnNotify();
+			break;
+		case 2 : // child
+			for(I_FerrisPart t : tile.ArrayEntityParts){
+				if(t==null)continue;
+				if(t.isTile())
+					((TileEntityFerrisWheel)t).getStoryBoardManager().OnNotify();
+			}
+			break;
 		}
-		tickTimeCount ++ ;
-		return canDispose;
+		return true;
 	}
 
 	@Override
@@ -124,20 +121,19 @@ public class TimerPanel implements IProgramPanel {
 	@Override
 	public String toString()
 	{
-		return "Tx"+tickTimeTarget+";";
+		return "Nx"+index+";";
 	}
 
 	@Override
 	public void fromString(String source)
 	{
 		String[] p = source.split("x");
-		setValue(id_Tick, p[1]);
+		setValue(id_Target, p[1]);
 	}
 	
 	@Override
 	public String displayDescription()
 	{
-		return "wait "+tickTimeTarget+" tick"
-				+"("+(tickTimeTarget/20.f)+" second)";
+		return "notify to "+targets[index];
 	}
 }

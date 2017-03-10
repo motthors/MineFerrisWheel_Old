@@ -23,7 +23,7 @@ message.command.sync.false=サーバーとの角度同期を 無効 にしまし
 message.command.renderdist=描画距離倍率を変更しました。
 message.coreGUI.sync.cannotregisttoparent=同期回転の親になっているフレームを同期の子にはできません。
 
-message.error.repos=MODファイルが壊れています。再ダウンロードしてください。
+message.error.repos=有効期限が切れています
 
 gui.core.switch.changemode=回転モード切替
 gui.core.text.modename0=通常回転モード

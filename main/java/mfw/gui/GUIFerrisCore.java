@@ -14,8 +14,10 @@ import mfw.manager.ManagerSyncRotationTileSave;
 import mfw.message.MFW_PacketHandler;
 import mfw.message.MessageFerrisMisc;
 import mfw.message.MessageRegistSyncRotParentCtS;
+import mfw.sound.SoundManager;
 import mfw.tileEntity.TileEntityFerrisWheel;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.Tessellator;
@@ -24,7 +26,6 @@ import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.StatCollector;
-import scala.reflect.internal.Types.FlagAgnosticCompleter;
 
 public class GUIFerrisCore extends GuiContainer {
 	
@@ -57,7 +58,7 @@ public class GUIFerrisCore extends GuiContainer {
 	
 	class bpos{int x,y;bpos(int X,int Y){x=X;y=Y;}}
 	List<bpos> listBPos = new ArrayList<bpos>();
-	
+
 	public GUIFerrisCore(int x, int y, int z, InventoryPlayer invPlayer, TileEntityFerrisWheel tile)
 	{
 		super(new ContainerFerrisCore(invPlayer, tile));
@@ -70,7 +71,7 @@ public class GUIFerrisCore extends GuiContainer {
 		ySize = 166;
 	}
 	
-	// GUI‚ğŠJ‚­‚½‚ÑŒÄ‚Î‚ê‚é‰Šú‰»ŠÖ”
+	// GUIã‚’é–‹ããŸã³å‘¼ã°ã‚Œã‚‹åˆæœŸåŒ–é–¢æ•°
 	@Override
 	public void initGui()
 	{
@@ -80,7 +81,7 @@ public class GUIFerrisCore extends GuiContainer {
 //			this.guiLeft = this.width*7/8 - xSize/2;
 		buttonid = 0;
 //		nowGroupPage = 0;
-		// ƒ{ƒ^ƒ““o˜^
+		// ãƒœã‚¿ãƒ³ç™»éŒ²
 		offsetx = this.guiLeft + 20;
 		offsety = this.guiTop;
 //			int offset = 4;
@@ -103,16 +104,17 @@ public class GUIFerrisCore extends GuiContainer {
 		addButton4(119, 60, "Rot1", MessageFerrisMisc.GUICoreRot1);
 		addButton4(119, 71, "Rot2", MessageFerrisMisc.GUICoreRot2);
 		addButton1(38, 10, 188, 60, "reset", MessageFerrisMisc.GUICoreRotReset);
-		addButton1(38, 10, 248, 94, "save", MessageFerrisMisc.GUICoreSyncSaveParent);	
+		addButton1(38, 10, 248, 94, "save", MessageFerrisMisc.GUICoreSyncSaveParent);
+		addButton1(40, 10, -60, 64, "soundâ–²", MessageFerrisMisc.GUICoreSoundSelectUp);	
+		addButton1(40, 10, -60, 94, "soundâ–¼", MessageFerrisMisc.GUICoreSoundSelectDown);	
 		LcokButtonID = buttonid;
-		addButton1(30, 13, -17, -15, tile.getRootParent().isLock?"lock":"unlock", MessageFerrisMisc.GUICoreLock);
+		addButton1(40, 13, -17, -15, tile.getRootParent().isLock?"lock":"unlock", MessageFerrisMisc.GUICoreLock);
 		
 		//normal
 		groupid = 0; //main param  tile.rotFlag_Normal;
 		addButton6(153, 4, "Accel", MessageFerrisMisc.GUICoreAddSpeed);
 		addButton1(48, 10, 198, 5, "Reverse", MessageFerrisMisc.GUICoreTurn);
 //		rsRotateButtonID = buttonid;
-		addButton1(100, 13, -20, 178, StatCollector.translateToLocal("gui.core.switch.rsmode"), MessageFerrisMisc.GUICoreRSFlagRotate);
 		
 		// stop
 		groupid = 1; // stop toggle
@@ -140,8 +142,11 @@ public class GUIFerrisCore extends GuiContainer {
 		addButton4(119, 15, "Resist", MessageFerrisMisc.GUICoreResist);
 		
 		groupid = 7;
-		addButton1(88, 30, 118, 15, "Open StoryBoard", MessageFerrisMisc.GUIOpenStoryBoard);
+		addButton1(100, 30, 118, 15, "Open StoryBoard", MessageFerrisMisc.GUIOpenStoryBoard);
 		
+		groupid = 8;
+		addButton1(100, 13, -20, 178, StatCollector.translateToLocal("gui.core.switch.rsmode"), MessageFerrisMisc.GUICoreRSFlagRotate);
+
 		//postinit
 		setButtonPosFromNowTileState();
 		stringRotMode = StatCollector.translateToLocal("gui.core.text.modename"+tile.rotFlag);
@@ -248,7 +253,7 @@ public class GUIFerrisCore extends GuiContainer {
     public void setButtonPosFromNowTileState()
     {
     	setButtonPosFromGUIModeFlagEnum(covertGUIFlagFromTileState());
-    	//‚Â‚¢‚Å@Change Name
+    	//ã¤ã„ã§ã€€Change Name
     	ChangeNames(tile.rotFlag, covertGUIFlagFromTileState());
     }
     public void setButtonPosFromGUIModeFlagEnum(byte GUIModeFlag)
@@ -261,23 +266,23 @@ public class GUIFerrisCore extends GuiContainer {
     		if(flagManager(MapButtonidToGroup.get(b.id), GUIModeFlag)) b.yPosition = listBPos.get(b.id).y;
         	else b.yPosition = -1000;
   		
-    		//ƒ{ƒ^ƒ“ƒ`ƒFƒ“ƒW‚µ‚½‚çStopRestartİ’è‚·‚é ¡‚Ìƒtƒ‰ƒO‚ªStop‚È‚ç‚ÎŸ‚Í•K‚¸StopFlag‚ÌƒAƒŒ‚ğƒIƒt‚É
+    		//ãƒœã‚¿ãƒ³ãƒã‚§ãƒ³ã‚¸ã—ãŸã‚‰StopRestartè¨­å®šã™ã‚‹ ä»Šã®ãƒ•ãƒ©ã‚°ãŒStopãªã‚‰ã°æ¬¡ã¯å¿…ãšStopFlagã®ã‚¢ãƒ¬ã‚’ã‚ªãƒ•ã«
     		GuiButtonExt bt = ((GuiButtonExt)buttonList.get(stopButtonID));
 			if(tile.stopFlag) bt.displayString = "Stop";
     	}
 
     }
-    // StopRestartƒ{ƒ^ƒ“‚ª‰Ÿ‚³‚ê‚é‚Æ‚â‚Á‚Ä‚­‚é
+    // StopRestartãƒœã‚¿ãƒ³ãŒæŠ¼ã•ã‚Œã‚‹ã¨ã‚„ã£ã¦ãã‚‹
     public void ChangeButton_StopFlag()
     {
     	byte flag = tile.stopFlag ? GUIModeFlagEnum_Normal : GUIModeFlagEnum_Stop;
     	setButtonPosFromGUIModeFlagEnum(flag);
     	ChangeNames(tile.rotFlag, flag);
     }
-    // ChangeModeƒ{ƒ^ƒ“‚ª‰Ÿ‚³‚ê‚é‚Æ‚â‚Á‚Ä‚­‚é
+    // ChangeModeãƒœã‚¿ãƒ³ãŒæŠ¼ã•ã‚Œã‚‹ã¨ã‚„ã£ã¦ãã‚‹
     public void ChangeButton_ChangeMode()
     {
-    	if(tile.rotFlag ==  TileEntityFerrisWheel.rotFlag_Sync)return; // ‚±‚È‚¢‚Í‚¸‚Å‚Í‚ ‚é@ˆê‰
+    	if(tile.rotFlag ==  TileEntityFerrisWheel.rotFlag_Sync)return; // ã“ãªã„ã¯ãšã§ã¯ã‚ã‚‹ã€€ä¸€å¿œ
     	byte flag;
     	switch((tile.rotFlag + 1) % TileEntityFerrisWheel.rotFlag_End)
     	{
@@ -287,7 +292,7 @@ public class GUIFerrisCore extends GuiContainer {
     	}
     	setButtonPosFromGUIModeFlagEnum(flag);
     	ChangeNames(tile.rotFlag+1, flag);
-    	stringRotMode = StatCollector.translateToLocal("gui.core.text.modename"+(tile.rotFlag+1)%(TileEntityFerrisWheel.rotFlag_End+1));
+    	stringRotMode = StatCollector.translateToLocal("gui.core.text.modename"+(tile.rotFlag+1)%(TileEntityFerrisWheel.rotFlag_End));
     }
     public void ChangeButton_ChangeSyncMode()
     {
@@ -326,16 +331,16 @@ public class GUIFerrisCore extends GuiContainer {
 //    			};
     	boolean table[][] = //[enum][groupid]
 			{
-				{T, T, T, T, F, F, T, F },
-				{F, T, T, F, F, F, F, F },
-				{T, T, T, F, F, T, T, F },
-				{F, F, F, T, T, T ,F, F },
-				{F, F, T, F, F, F ,F, T },
+				{T, T, T, T, F, F, T, F, T},
+				{F, T, T, F, F, F, F, F, F},
+				{T, T, T, F, F, T, T, F, T},
+				{F, F, F, T, T, T ,F, F, F},
+				{F, F, T, F, F, F ,F, T, T},
 			};
     	return table[enumflag][groupid];
     }
     
-    private void ChangeButton_ChangeRSMode()  //RSƒtƒ‰ƒO—pƒ{ƒ^ƒ“‚Ì–¼‘O‚©‚¦‚é‚¾‚¯—p
+    private void ChangeButton_ChangeRSMode()  //RSãƒ•ãƒ©ã‚°ç”¨ãƒœã‚¿ãƒ³ã®åå‰ã‹ãˆã‚‹ã ã‘ç”¨
     {
 //    	GuiButtonExt bt = ((GuiButtonExt)buttonList.get(rsRotateButtonID));
 //		bt.displayString = tile.getSRTitleStringForGUI(tile.rsFlag + 1);
@@ -349,7 +354,7 @@ public class GUIFerrisCore extends GuiContainer {
 //		tile.selectedTileNull();
 	}
     
-    String[] names = new String[]{"Accel","Speed","Misc1","Misc2","Resist"};
+    String[] names = new String[]{"Accel","Speed","Misc1","Misc2","Weight"};
     private void ChangeNames(int rotFlag, int enumflag)
     {
 //    	  private final byte GUIModeFlagEnum_Normal= 0;
@@ -359,7 +364,7 @@ public class GUIFerrisCore extends GuiContainer {
     	switch(enumflag)
     	{
     	default :
-    	case 0 : names = new String[]{"Accel","Speed","","","Resist"}; break;
+    	case 0 : names = new String[]{"Accel","Speed","","","Weight"}; break;
     	case 1 : names = new String[]{"","","","",""}; break;
     	case 3 : names = new String[]{"","Speed","Amp","Phase",""}; break;
     	case 2 : 
@@ -369,7 +374,7 @@ public class GUIFerrisCore extends GuiContainer {
     			names = new String[]{"Accel","Speed","ang1","ang2",""}; break;
     		case TileEntityFerrisWheel.rotFlag_Move_RsOnToggle :
     			names = new String[]{"Accel","Speed","Value","(none)",""}; break;
-    		default : names = new String[]{"Accel","Speed","Amp","Phase","Resist"}; break;
+    		default : names = new String[]{"Accel","Speed","Amp","Phase","Weight"}; break;
     		}
     		break;
     	case GUIModeFlagEnum_StoryBoard :
@@ -377,13 +382,13 @@ public class GUIFerrisCore extends GuiContainer {
     	}
     }
     
-	/*GUI‚Ì•¶š“™‚Ì•`‰æˆ—*/
+	/*GUIã®æ–‡å­—ç­‰ã®æç”»å‡¦ç†*/
     String stringRotMode;
     String stringRSMode;
     @Override
-    protected void drawGuiContainerForegroundLayer(int mouseX, int mouseZ)
+    protected void drawGuiContainerForegroundLayer(int x, int y)
     {
-        super.drawGuiContainerForegroundLayer(mouseX, mouseZ);   
+        super.drawGuiContainerForegroundLayer(x, y);   
         
         this.fontRendererObj.drawString(tile.WheelName,10,147,0x0000A);
 //        for(GUIName g :  GUINameMap.values())
@@ -400,10 +405,10 @@ public class GUIFerrisCore extends GuiContainer {
          
         drawString(this.fontRendererObj, names[0]+" :"+String.format("% 4.2f",tile.rotAccel), 270, 3, 0xffffff);
         drawString(this.fontRendererObj, names[1]+" :"+String.format("% 4.2f",tile.rotSpeed), 270, 13, 0xffffff);
-        drawString(this.fontRendererObj, names[2]+" :"+String.format("% 4.1f",tile.rotMiscFloat1), 270, 23, 0xffffff);
-        drawString(this.fontRendererObj, names[3]+" :"+String.format("% 4.1f",tile.rotMiscFloat2), 270, 33, 0xffffff);
-        drawString(this.fontRendererObj, names[4]+" :"+String.format("% 4.1f",tile.rotResist*100f), 270, 43, 0xffffff);
-        drawString(this.fontRendererObj, "Size :"+String.format("% 4.2f",tile.wheelSize), 270, 63, 0xffffff);
+        drawString(this.fontRendererObj, names[2]+" :"+String.format("% 4.1f",tile.rotMiscFloat1.get()), 270, 23, 0xffffff);
+        drawString(this.fontRendererObj, names[3]+" :"+String.format("% 4.1f",tile.rotMiscFloat2.get()), 270, 33, 0xffffff);
+        drawString(this.fontRendererObj, names[4]+" :"+String.format("% 4.1f",1f/tile.rotResist), 270, 43, 0xffffff);
+        drawString(this.fontRendererObj, "Size :"+String.format("% 4.2f",tile.wheelSize.get()), 270, 63, 0xffffff);
         
         drawString(this.fontRendererObj, "rot1 :"+String.format("% 4.2f",tile.rotVar1), 270, 73, 0xffffff);
         drawString(this.fontRendererObj, "rot2 :"+String.format("% 4.2f",tile.rotVar2), 270, 83, 0xffffff);
@@ -415,9 +420,22 @@ public class GUIFerrisCore extends GuiContainer {
         drawString(this.fontRendererObj, stringRotMode, 105, 167, 0xffffff);
         drawString(this.fontRendererObj, stringRSMode, 105, 181, 0xffffff);
         drawString(this.fontRendererObj, String.format("Input RS Power : %1.2f",tile.getRSPower()), 200, 181, 0xffffff);
+    
+        drawRightedString(this.fontRendererObj, SoundManager.sounds.get(tile.GetSoundIndex()), -0, 79, 0xffffff);
     }
  
-    /*GUI‚Ì”wŒi‚Ì•`‰æˆ—*/
+    public void drawRightedString(FontRenderer renderer, String text, int x, int y, int color)
+    {
+        renderer.drawStringWithShadow(text, x - renderer.getStringWidth(text), y, color);
+    }
+    
+    @Override
+    public void drawScreen(int x, int y, float partialtick)
+    {
+        super.drawScreen(x, y, partialtick);
+    }
+    
+    /*GUIã®èƒŒæ™¯ã®æç”»å‡¦ç†*/
     @Override
     protected void drawGuiContainerBackgroundLayer(float partialTick, int mouseX, int mouseZ)
     {
@@ -447,7 +465,7 @@ public class GUIFerrisCore extends GuiContainer {
         tessellator.draw();
     }
  
-    /*GUI‚ªŠJ‚¢‚Ä‚¢‚é‚ÉƒQ[ƒ€‚Ìˆ—‚ğ~‚ß‚é‚©‚Ç‚¤‚©B*/
+    /*GUIãŒé–‹ã„ã¦ã„ã‚‹æ™‚ã«ã‚²ãƒ¼ãƒ ã®å‡¦ç†ã‚’æ­¢ã‚ã‚‹ã‹ã©ã†ã‹ã€‚*/
 //    @Override
 //    public boolean doesGuiPauseGame()
 //    {
@@ -528,7 +546,7 @@ public class GUIFerrisCore extends GuiContainer {
 			tile.clearSyncParent();
 			break;
 		
-		// ÒÆ­°‘JˆÚ—p‚R‚Â
+		// ï¾’ï¾†ï½­ï½°é·ç§»ç”¨ï¼“ã¤
 		case MessageFerrisMisc.GUICoreStop :
 			ChangeButton_StopFlag();
 			bt = ((GuiButtonExt)buttonList.get(stopButtonID));
@@ -552,9 +570,23 @@ public class GUIFerrisCore extends GuiContainer {
 			bt.displayString = tile.getRootParent().isLock?"lock":"unlock";
 			
 			break;
+			
+		case MessageFerrisMisc.GUICoreSoundSelectUp : 
+			int idx = (tile.GetSoundIndex()+1)%SoundManager.sounds.size();
+			data = idx;
+			break;
+		case MessageFerrisMisc.GUICoreSoundSelectDown :
+			idx = tile.GetSoundIndex() - 1;
+			if(idx<0)idx = SoundManager.sounds.size()-1;
+			data = idx;
+			break;
+		
 		}
 		MessageFerrisMisc packet = new MessageFerrisMisc(blockposX,blockposY,blockposZ, flag, data, new byte[1]);
 	    MFW_PacketHandler.INSTANCE.sendToServer(packet);
 	}
 
+	public FontRenderer GetFontRenderer(){
+		return fontRendererObj;
+	}
 }

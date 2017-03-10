@@ -10,6 +10,7 @@ import org.apache.commons.lang3.math.NumberUtils;
 import cpw.mods.fml.client.config.GuiButtonExt;
 import mfw._core.MFW_Logger;
 import mfw.gui.GUIStoryBoard.buttonGroup;
+import mfw.sound.SoundManager;
 import mfw.storyboard.programpanel.IProgramPanel;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
@@ -40,14 +41,15 @@ public class GUIStoryBoardSettingPart {
 		description = desc;
 		switch(type)
 		{
+		case soundselector : 
 		case change : 
 			String buttontext = (String)value;
-			button = new GuiButtonExt(-1, x, y, 40, 20, buttontext);
+			button = new GuiButtonExt(-1, x, y, 50, 20, buttontext);
 			buttonid = parent.AddToButtonList(button, group);
 			break;
 		case inputvalue	:
 			String inittext = value.toString();
-			textField = new GuiTextFieldExt(parent, parent.GetFontRenderer(), x, y, 40, 20);
+			textField = new GuiTextFieldExt(parent, parent.GetFontRenderer(), x, y, 50, 20);
 			textField.setText(inittext);
 			textid = parent.AddToTextFieldList(textField);
 			break;
@@ -61,13 +63,14 @@ public class GUIStoryBoardSettingPart {
 		switch(type)
 		{
 		case change : 
+		case soundselector :
 			button.xPosition = x;
 //			button.yPosition = y;
 			break;
 		case inputvalue	:
 			textField.xPosition = x;
 //			text.yPosition = y;
-			break;
+			break; 
 		default : break;
 		}
 	}
@@ -82,6 +85,9 @@ public class GUIStoryBoardSettingPart {
 		case inputvalue	:
 			textField.setText(value);
 			break;
+		case soundselector :
+			button.displayString = "";
+			description = SoundManager.getSoundDomain(Integer.parseInt(value));
 		default : break;
 		}
 	}
@@ -94,6 +100,8 @@ public class GUIStoryBoardSettingPart {
 			return button.displayString;
 		case inputvalue	:
 			return textField.getText();
+		case soundselector : 
+			return "";
 		default : return "";
 		}
 	}
@@ -110,7 +118,7 @@ public class GUIStoryBoardSettingPart {
 	
 	public void Draw()
 	{
-		this.fontRendererObj.drawString(description, drawX - 30, drawY, 0x404040);
+		this.fontRendererObj.drawString(description, drawX - 30, drawY-10, 0x404040);
 //		if(textField!=null)this.fontRendererObj.drawString(textField.getText(), drawX - 30, drawY+15, 0x404040);
 //		MFW_Logger.debugInfo(description + " : " + drawX);
 	}

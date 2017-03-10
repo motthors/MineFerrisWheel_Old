@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import MTYlib.blocksReplication.MTYBlockAccess;
 import mfw._core.MFW_Core;
 import mfw._core.connectPos;
+import mfw.blocksReplication.MTYBlockAccess;
 import mfw.entity.entityPartSitEx;
 import mfw.math.MFW_Math;
 import mfw.tileEntity.TileEntityFerrisWheel;
@@ -19,6 +19,7 @@ public class MFWBlockAccess extends MTYBlockAccess{
 
 	TileEntityFerrisWheel parent;
 	int copyNum = 1;
+	int copyMode = 0;
 	Vec3 vecForCopyRotAxis;
 	public List<connectPos> listConnectPos = new ArrayList<connectPos>();
 	public class sortConnectPos implements java.util.Comparator<connectPos>{
@@ -39,9 +40,10 @@ public class MFWBlockAccess extends MTYBlockAccess{
 		vecForCopyRotAxis = Vec3.createVectorHelper(0, 0, 0);
 	}
 
-	public void setCopyNum(int num, int constructormeta)
+	public void setCopyNum(int num, int constructormeta, int mode)
 	{
 		copyNum = num;
+		copyMode = mode;
 		switch(constructormeta)
 		{
 		case 1 : vecForCopyRotAxis.yCoord = 1; break;
@@ -62,27 +64,30 @@ public class MFWBlockAccess extends MTYBlockAccess{
 		entityPartSitEx seatlist[] = new entityPartSitEx[listEntitySeatEx.size()];
 		listConnectPos.toArray(list);
 		listEntitySeatEx.toArray(seatlist);
-		for(int i=1; i < copyNum; ++i)
+		if(copyMode==0)
 		{
-			for(connectPos cOrg : list)
+			for(int i=1; i < copyNum; ++i)
 			{
-				connectPos cNew = new connectPos();
-				cNew.len = cOrg.len;
-				cNew.angle = cOrg.len + i*rotoffset;
-				Vec3 p = Vec3.createVectorHelper(cOrg.x, cOrg.y, cOrg.z);
-				Vec3 a = vecForCopyRotAxis;
-				MFW_Math.rotateAroundVector(p, a.xCoord, a.yCoord, a.zCoord, Math.toRadians(-i*rotoffset));
-				cNew.x=(float) p.xCoord; 
-				cNew.y=(float) p.yCoord; 
-				cNew.z=(float) p.zCoord;
-				listConnectPos.add(cNew);
-			}
-			for(entityPartSitEx e : seatlist)
-			{
-				Vec3 p = Vec3.createVectorHelper(e.getOffsetX(), e.getOffsetY()+1, e.getOffsetZ());
-				Vec3 a = vecForCopyRotAxis;
-				MFW_Math.rotateAroundVector(p, a.xCoord, a.yCoord, a.zCoord, Math.toRadians(-i*rotoffset));
-				setSeatEx((float)p.xCoord, (float)p.yCoord, (float)p.zCoord, (int)MFW_Math.wrap(e.getSeatAngle()-i*rotoffset));
+				for(connectPos cOrg : list)
+				{
+					connectPos cNew = new connectPos();
+					cNew.len = cOrg.len;
+					cNew.angle = cOrg.len + i*rotoffset;
+					Vec3 p = Vec3.createVectorHelper(cOrg.x, cOrg.y, cOrg.z);
+					Vec3 a = vecForCopyRotAxis;
+					MFW_Math.rotateAroundVector(p, a.xCoord, a.yCoord, a.zCoord, Math.toRadians(-i*rotoffset));
+					cNew.x=(float) p.xCoord; 
+					cNew.y=(float) p.yCoord; 
+					cNew.z=(float) p.zCoord;
+					listConnectPos.add(cNew);
+				}
+				for(entityPartSitEx e : seatlist)
+				{
+					Vec3 p = Vec3.createVectorHelper(e.getOffsetX(), e.getOffsetY()+1, e.getOffsetZ());
+					Vec3 a = vecForCopyRotAxis;
+					MFW_Math.rotateAroundVector(p, a.xCoord, a.yCoord, a.zCoord, Math.toRadians(-i*rotoffset));
+					setSeatEx((float)p.xCoord, (float)p.yCoord, (float)p.zCoord, (int)MFW_Math.wrap(e.getSeatAngle()-i*rotoffset));
+				}
 			}
 		}
 	}

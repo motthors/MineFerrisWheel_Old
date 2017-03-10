@@ -48,6 +48,8 @@ public class TileEntityFerrisConstructor extends Wrap_TileEntityLimitLine
 //	public int totalTime = 200;
 	// その他パラメータ
 	public int copyNum = 1;
+	public int copymode = 0;
+	
 	public String AuthorName;
 	// ホイールアイテムを入れるところ
 	private ItemStack[] ItemStacks = new ItemStack[1];
@@ -133,6 +135,16 @@ public class TileEntityFerrisConstructor extends Wrap_TileEntityLimitLine
 		return 0;
 	}
 	
+	public void setCopyMode(int flag)
+	{
+		copymode += flag;
+		if(copymode > 1)copymode = 1;
+		if(copymode < 0)copymode = 0;
+	}
+	public void rotateCopyMode()
+	{
+		copymode = (copymode+1)%2;
+	}
 	
 	public void setCopyNum(int flag)
 	{
@@ -194,6 +206,7 @@ public class TileEntityFerrisConstructor extends Wrap_TileEntityLimitLine
       	FlagDrawEntity = nbt.getBoolean(tag+"flagdrawentity");
       	wheelName = nbt.getString(tag+"wheelname");
       	copyNum = nbt.getInteger(tag+"copynum");
+      	copymode = nbt.getInteger(tag+"copymode");
       	progressState = nbt.getByte(tag+"progressstate");
     }
     
@@ -210,6 +223,7 @@ public class TileEntityFerrisConstructor extends Wrap_TileEntityLimitLine
     	nbt.setBoolean(tag+"flagdrawentity", FlagDrawEntity);
     	nbt.setString(tag+"wheelname", wheelName);
     	nbt.setInteger(tag+"copynum", copyNum);
+    	nbt.setInteger(tag+"copymode", copymode);
     	nbt.setByte(tag+"progressstate", progressState);
     }
 
@@ -343,6 +357,7 @@ public class TileEntityFerrisConstructor extends Wrap_TileEntityLimitLine
 		nbt.setInteger("connectoffsety", leny);
 		nbt.setInteger("connectoffsetz", lenz);
 		nbt.setInteger("copynum", copyNum);
+		nbt.setInteger("copymode", copymode);
 //        ItemStacks[0].setStackDisplayName(this.wheelName.matches("")?"-NoName-":this.wheelName);
 //        ItemStacks[0].setTagCompound(nbt);
 //        

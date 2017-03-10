@@ -1,5 +1,12 @@
 package mfw.gui;
 
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -9,16 +16,20 @@ import org.lwjgl.opengl.GL11;
 
 import cpw.mods.fml.client.config.GuiButtonExt;
 import mfw._core.MFW_Core;
+import mfw._core.MFW_Logger;
 import mfw.gui.container.DefContainer;
 import mfw.message.MFW_PacketHandler;
 import mfw.message.MessageFerrisMisc;
 import mfw.storyboard.StoryBoardManager;
 import mfw.storyboard.programpanel.IProgramPanel;
 import mfw.storyboard.programpanel.IProgramPanel.Mode;
+import mfw.storyboard.programpanel.KeyFramePanel;
 import mfw.storyboard.programpanel.LoopPanel;
-import mfw.storyboard.programpanel.LoopPanel.LoopEndPanel;
+import mfw.storyboard.programpanel.NotifyPanel;
 import mfw.storyboard.programpanel.SetValuePanel;
+import mfw.storyboard.programpanel.SoundPanel;
 import mfw.storyboard.programpanel.TimerPanel;
+import mfw.storyboard.programpanel.WaitPanel;
 import mfw.tileEntity.TileEntityFerrisWheel;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
@@ -31,9 +42,13 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
 	
 	private static final ResourceLocation TEX_BASE = new ResourceLocation(MFW_Core.MODID, "textures/gui/storyboard.png");
 	private static final ResourceLocation TEX_ARROW = new ResourceLocation(MFW_Core.MODID, "textures/gui/sbarrow.png");
-	private static final ResourceLocation Tex1 = new ResourceLocation(MFW_Core.MODID, "textures/gui/p1.png");
-	private static final ResourceLocation Tex2 = new ResourceLocation(MFW_Core.MODID, "textures/gui/p2.png");
-	private static final ResourceLocation Tex3 = new ResourceLocation(MFW_Core.MODID, "textures/gui/p3.png");
+	private static final ResourceLocation set = new ResourceLocation(MFW_Core.MODID, "textures/gui/set.png");
+	private static final ResourceLocation timer = new ResourceLocation(MFW_Core.MODID, "textures/gui/timer.png");
+	private static final ResourceLocation wait = new ResourceLocation(MFW_Core.MODID, "textures/gui/wait.png");
+	private static final ResourceLocation notify = new ResourceLocation(MFW_Core.MODID, "textures/gui/notify.png");
+	private static final ResourceLocation keyframe = new ResourceLocation(MFW_Core.MODID, "textures/gui/keyframe.png");
+	private static final ResourceLocation sound = new ResourceLocation(MFW_Core.MODID, "textures/gui/sound.png");
+	private static final ResourceLocation loop = new ResourceLocation(MFW_Core.MODID, "textures/gui/loop.png");
 	
 	public enum buttonGroup{
 		PanelIdFlag,
@@ -46,6 +61,9 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
 		PanelUp,
 		PanelDown,
 		PanelDelete,
+		Paste,
+		Copy,
+		Apply,
 	}
 	
     private int groupid;
@@ -65,13 +83,18 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
     
     GuiButtonExt AnsBtn;
     GuiButtonExt Adder;
-
+    
+    final int id_FirstButton = -9999;
+    
     ArrayList<GUIStoryBoardSettingPart> nowSelectedSettingList;
     ArrayList<GUIStoryBoardSettingPart> ButtonListSelectMode 	= new ArrayList<GUIStoryBoardSettingPart>();
     ArrayList<GUIStoryBoardSettingPart> ButtonGroupListSet 		= new ArrayList<GUIStoryBoardSettingPart>();
     ArrayList<GUIStoryBoardSettingPart> ButtonGroupListTimer 	= new ArrayList<GUIStoryBoardSettingPart>();
-    ArrayList<GUIStoryBoardSettingPart> ButtonGroupListRun 		= new ArrayList<GUIStoryBoardSettingPart>();
+    ArrayList<GUIStoryBoardSettingPart> ButtonGroupListKeyFrame = new ArrayList<GUIStoryBoardSettingPart>();
     ArrayList<GUIStoryBoardSettingPart> ButtonGroupListLoop		= new ArrayList<GUIStoryBoardSettingPart>();
+    ArrayList<GUIStoryBoardSettingPart> ButtonGroupListWait		= new ArrayList<GUIStoryBoardSettingPart>();
+    ArrayList<GUIStoryBoardSettingPart> ButtonGroupListNotify	= new ArrayList<GUIStoryBoardSettingPart>();
+    ArrayList<GUIStoryBoardSettingPart> ButtonGroupListSound	= new ArrayList<GUIStoryBoardSettingPart>();
     class PanelSettingGuiData{ 
     	public IProgramPanel targetPanel;
     	public ArrayList<GUIStoryBoardSettingPart> list;
@@ -85,6 +108,8 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
     
     int PanelPageIndex = 0;
     
+    GuiTextField serialcodeText;
+    
     public GUIStoryBoard(int x, int y, int z, TileEntityFerrisWheel tile)
     {
     	super(new DefContainer(x, y, z, tile));
@@ -92,44 +117,51 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
 		blockposX = x;
 		blockposY = y;
 		blockposZ = z;
-		xSize = 270;
+		xSize = 370;
 		PanelButtonList = new ArrayList<CustomTexButton>();
 		SettingPartButtonlist = new ArrayList<GUIStoryBoardSettingPart>();
-    }
+		}
+	
  
-    // GUI‚ğŠJ‚­‚½‚ÑŒÄ‚Î‚ê‚é‰Šú‰»ŠÖ”
+    // GUIã‚’é–‹ããŸã³å‘¼ã°ã‚Œã‚‹åˆæœŸåŒ–é–¢æ•°
 	@Override
 	public void initGui()
     {
 		super.initGui();
+//		updateToServer();
 		tile.getStoryBoardManager().stop();
 		
 		ButtonMap.clear();
 		PanelButtonList.clear();
-		// ƒ{ƒ^ƒ““o˜^
+		textFieldList.clear();
+		// ãƒœã‚¿ãƒ³ç™»éŒ²
 		ySize = mc.displayHeight;
 		offsetx = this.guiLeft + 20;
 		offsety = 0;
 		
-		//TODO ƒVƒŠƒAƒ‹•¶š—ñ‚Ì•\¦—p
-        GuiTextField textField = new GuiTextField(this.fontRendererObj, offsetx + 136, offsety + 15, 95, 12);
-		textField.setTextColor(-1);
-		textField.setDisabledTextColour(-1);
-		textField.setEnableBackgroundDrawing(false);
-		textField.setMaxStringLength(40);
-		textFieldList.add(textField);
+		//ã‚·ãƒªã‚¢ãƒ«ã‚³ãƒ¼ãƒ‰è¡¨ç¤º
+		serialcodeText = new GuiTextField(fontRendererObj, 50+offsetx, offsety+height-18, 180, 18);
+		serialcodeText.setTextColor(-1);
+		serialcodeText.setDisabledTextColour(-1);
+		serialcodeText.setMaxStringLength(Integer.MAX_VALUE);
+		serialcodeText.setText(tile.getStoryBoardManager().getSerialCode());
+		AddToTextFieldList(serialcodeText);
 
-        //‹¤’Ê
+        //å…±é€š
         addButton(29, 13, -15, 2, "back", buttonGroup.Close);
-        //ƒpƒlƒ‹ƒXƒNƒ[ƒ‹
-        addButton(80, 10, 50, 5, "£", buttonGroup.Pageup);
-        addButton(80, 10, 50, 220, "¥", buttonGroup.Pagedown);
-        //ƒpƒlƒ‹ˆÚ“®
-        addButton(10, 10, 180, 5, "£", buttonGroup.PanelUp);
-        addButton(10, 10, 200, 5, "¥", buttonGroup.PanelDown);
-        addButton(10, 10, 230, 5, "X", buttonGroup.PanelDelete);
+        //ãƒ‘ãƒãƒ«ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«
+        addButton(80, 10, 50, 5, "â–²", buttonGroup.Pageup);
+        addButton(80, 10, 50, height-38, "â–¼", buttonGroup.Pagedown);
+        //ãƒ‘ãƒãƒ«ç§»å‹•
+        addButton(10, 10, 180, 5, "â–²", buttonGroup.PanelUp);
+        addButton(10, 10, 200, 5, "â–¼", buttonGroup.PanelDown);
+        addButton(10, 10, 230, 5, "Ã—", buttonGroup.PanelDelete);
+        //ã‚³ãƒ¼ãƒ‰ã“ã´ãº
+        addButton(48, 18, -0, height-18, "Paste->", buttonGroup.Paste);
+        addButton(48, 18, 235, height-18, "->Copy", buttonGroup.Copy);
+        addButton(39, 18, 285, height-18, "Applyâ–²", buttonGroup.Apply);
         
-        //’Ç‰Á‚µ‚½‚¢ƒpƒlƒ‹‚Ìí—Ş‚ğ‘I‚Ô‚â‚Â
+        //è¿½åŠ ã—ãŸã„ãƒ‘ãƒãƒ«ã®ç¨®é¡ã‚’é¸ã¶ã‚„ã¤
         idOffsetAddPanel = buttonList.size();
         for(int apiidx = 0; apiidx < IProgramPanel.Mode.values().length; ++apiidx)
     	{
@@ -137,12 +169,15 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
         	if(!desc.equals("loopend"))addButton(40, 15, -15, 50+(apiidx)*20, desc, buttonGroup.AddPanel);
     	}
         
-        //Šeíƒpƒlƒ‹İ’è—pƒ{ƒ^ƒ“
+        //å„ç¨®ãƒ‘ãƒãƒ«è¨­å®šç”¨ãƒœã‚¿ãƒ³
         PanelSettingGuiData[] classes  = {
         		new PanelSettingGuiData(new SetValuePanel(), ButtonGroupListSet),
         		new PanelSettingGuiData(new TimerPanel(), ButtonGroupListTimer),
         		new PanelSettingGuiData(new LoopPanel(), ButtonGroupListLoop),
-        		
+        		new PanelSettingGuiData(new KeyFramePanel(), ButtonGroupListKeyFrame),
+        		new PanelSettingGuiData(new WaitPanel(), ButtonGroupListWait),
+        		new PanelSettingGuiData(new NotifyPanel(), ButtonGroupListNotify),
+        		new PanelSettingGuiData(new SoundPanel(), ButtonGroupListSound),
         };
         for(int i=0; i < classes.length; ++i)
         {
@@ -158,8 +193,9 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
         	}
         }
         
-        //ƒpƒlƒ‹ƒ^ƒCƒ€ƒ‰ƒCƒ““Æ©ƒ{ƒ^ƒ“
-		for( IProgramPanel panel : tile.getStoryBoardManager().getPanelList())
+        //ãƒ‘ãƒãƒ«ã‚¿ã‚¤ãƒ ãƒ©ã‚¤ãƒ³ç‹¬è‡ªãƒœã‚¿ãƒ³
+		addPanelButton(tile.getStoryBoardManager().startWaitPanel);
+        for( IProgramPanel panel : tile.getStoryBoardManager().getPanelList())
 		{
 			addPanelButton(panel);
 		}
@@ -178,6 +214,25 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
 		if(text instanceof GuiTextFieldExt)((GuiTextFieldExt)text).id = id;
 		return id;
 	}
+	private CustomTexButton addPanelButton(IProgramPanel panel)
+	{
+		int id = buttonList.size();
+		int panelIdx = PanelButtonList.size();
+		int panelHeight = (panel.getMode() == Mode.loopend) ? 10 : 20;
+		ResourceLocation tex = PanelModeToTex(panel.getMode());
+		CustomTexButton btn = new CustomTexButton(tex, panel, buttonList.size(), offsetx+50, 20 + 0, 140, panelHeight, "");
+		this.buttonList.add(btn);
+		
+		int nowidx = PanelButtonList.indexOf(nowTargetPanelB);
+		if(nowTargetPanelB==null)nowidx = PanelButtonList.size()-1;
+		this.PanelButtonList.add(nowidx+1, btn);
+		
+		ButtonMap.put(id, buttonGroup.Panel);
+		CalcButtonOffset();
+		return btn;
+	}
+
+
 	public FontRenderer GetFontRenderer(){
 		return fontRendererObj;
 	}
@@ -191,9 +246,14 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
 	{
 		switch(mode)
 		{
-		case set : return Tex1;
-		case timer : return Tex2;
-		case loop : return Tex3;
+		case set : return set;
+		case timer : return timer;
+		case loop : 
+		case loopend : return loop;
+		case keyframe : return keyframe;
+		case wait : return wait;
+		case notify : return notify;
+		case sound : return sound;
 		default : return DefaultTex();
 		}
 	}
@@ -211,20 +271,6 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
 	{
 		addPanelButton(null);
 	}
-	private CustomTexButton addPanelButton(IProgramPanel panel)
-	{
-		int id = buttonList.size();
-		int panelIdx = PanelButtonList.size();
-		int panelHeight = (panel.getMode() == Mode.loopend) ? 10 : 20;
-		ResourceLocation tex = PanelModeToTex(panel.getMode());
-		CustomTexButton btn = new CustomTexButton(tex, panel, buttonList.size(), offsetx+50, 20 + 0, 100, panelHeight, "");
-		this.buttonList.add(btn);
-		this.PanelButtonList.add(btn);
-		ButtonMap.put(id, buttonGroup.Panel);
-		CalcButtonOffset();
-		return btn;
-	}
-	
 	public void clearPanel()
 	{
 		PanelButtonList.clear();
@@ -242,13 +288,15 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
     {
     	StoryBoardManager manager = tile.getStoryBoardManager();
     	manager.clear();
-    	for(CustomTexButton panelbutton : PanelButtonList)
+    	for(int i=1; i<PanelButtonList.size(); ++i )
     	{
+    		CustomTexButton panelbutton = PanelButtonList.get(i);
     		if(panelbutton.panel.getMode()==Mode.loop)((LoopPanel)panelbutton.panel).clear();
     		manager.addPanel(panelbutton.panel);
     	}
     	byte[] serialArray = manager.getSerialCode().getBytes();
     	int flag = MessageFerrisMisc.GUIStoryBoardSendData;
+//    	MFW_Logger.debugInfo(tile.getStoryBoardManager().getSerialCode());
     	MessageFerrisMisc packet = new MessageFerrisMisc(blockposX,blockposY,blockposZ, flag, 0, serialArray);
 	    MFW_PacketHandler.INSTANCE.sendToServer(packet);
     }
@@ -267,8 +315,12 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
 			flag = MessageFerrisMisc.GUICloseStoryBoard;
 			break;
 		case AddPanel:
+			updateToServer();
+		    serialcodeText.setText(tile.getStoryBoardManager().getSerialCode());
 			panel = StoryBoardManager.createPanel(button.displayString);
 			AddNewPanel(panel);
+			updateToServer();
+		    serialcodeText.setText(tile.getStoryBoardManager().getSerialCode());
 			return;
 		case Pageup : 
 			PageUp();
@@ -278,15 +330,19 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
 			return;
 		case PanelUp :
 			SortPanel(-1);
+			updateToServer();
+		    serialcodeText.setText(tile.getStoryBoardManager().getSerialCode());
 			return;
 		case PanelDown :
 			SortPanel(1);
+			updateToServer();
+		    serialcodeText.setText(tile.getStoryBoardManager().getSerialCode());
 			return;
 		case PanelDelete :
 			DeletePanel();
 			return;
 		case Panel :
-			//‚Ü‚¸‘O‰ñ•ª‚ğ‘S‚Ä•Û‘¶‚·‚é
+			//ã¾ãšå‰å›åˆ†ã‚’å…¨ã¦ä¿å­˜ã™ã‚‹
 			if(nowTargetPanelB!=null)
 			{
 				int apinum = nowTargetPanelB.panel.ApiNum();
@@ -296,7 +352,8 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
 				}
 			}
 			updateToServer();
-			//ƒpƒlƒ‹Ø‚è‘Ö‚¦	
+		    serialcodeText.setText(tile.getStoryBoardManager().getSerialCode());
+			//ãƒ‘ãƒãƒ«åˆ‡ã‚Šæ›¿ãˆ	
 			changePanelSettingGui(((CustomTexButton)button));
 			int num = nowTargetPanelB.panel.ApiNum();
 			for(int i=0; i<num; ++i)nowSelectedSettingList.get(i).setValue(nowTargetPanelB.panel.getValue(i));
@@ -311,6 +368,31 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
 					}
 				}
 			}
+			return;
+		case Paste :
+			Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+			Transferable object = clipboard.getContents(null);
+			try {
+				serialcodeText.setText((String)object.getTransferData(DataFlavor.stringFlavor));
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
+			return;
+		case Copy :
+			clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+			StringSelection selection = new StringSelection(serialcodeText.getText());
+			clipboard.setContents(selection, null);
+			return;
+		case Apply :
+			tile.getSelectedPartTile()
+	    		.getStoryBoardManager()
+	    		.createFromSerialCode(serialcodeText.getText());
+			//ãƒ‘ãƒãƒ«ã‚¿ã‚¤ãƒ ãƒ©ã‚¤ãƒ³æ›´æ–°
+			PanelButtonList.clear();
+			addPanelButton(tile.getStoryBoardManager().startWaitPanel);
+	        for( IProgramPanel p : tile.getStoryBoardManager().getPanelList()){addPanelButton(p);}
+			updateToServer();
+		    serialcodeText.setText(tile.getStoryBoardManager().getSerialCode());
 			return;
 		default:
             return;
@@ -339,6 +421,7 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
 		if(nowTargetPanelB==null)return;
 		if(nowTargetPanelB.panel.getMode()==Mode.loopend)return;
 		int idx = PanelButtonList.indexOf(nowTargetPanelB);
+		if(idx==0)return;
 		if(idx+1 >= PanelButtonList.size())idx--;
 		if(idx<0){
 			PanelButtonList.clear();
@@ -356,7 +439,8 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
 			}
 		}
 		PanelButtonList.remove(nowTargetPanelB);
-		changePanelSettingGui(PanelButtonList.get(idx));
+		if(PanelButtonList.size() > idx && idx >= 0)
+			changePanelSettingGui(PanelButtonList.get(idx));
 		CalcButtonOffset();
 	}
 	
@@ -390,11 +474,13 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
 	{
 		int idx_now = PanelButtonList.indexOf(nowTargetPanelB);
 		int idx_to = idx_now + direction;
-		//Loop‚ÆLoopEnd‚Í“ü‚ê‘Ö‚¦‚µ‚È‚¢
+		if(idx_to < 0 || idx_to >= PanelButtonList.size())return;
+		//ä¸€ç•ªæœ€åˆã®ãƒ‘ãƒãƒ«ã¯å‹•ã‹ã•ãªã„
+		if(idx_to == 0 || idx_now == 0)return;
+		//Loopã¨LoopEndã¯å…¥ã‚Œæ›¿ãˆã—ãªã„
 		if(nowTargetPanelB.panel.getMode()==Mode.loopend && PanelButtonList.get(idx_to).panel.getMode()==Mode.loop)return;
 		if(nowTargetPanelB.panel.getMode()==Mode.loop && PanelButtonList.get(idx_to).panel.getMode()==Mode.loopend)return;
-		if(idx_to < 0 || idx_to >= PanelButtonList.size())return;
-		//“ü‚ê‘Ö‚¦
+		//å…¥ã‚Œæ›¿ãˆ
 		CustomTexButton temp = PanelButtonList.get(idx_now);
 		PanelButtonList.set(idx_now, PanelButtonList.get(idx_to));
 		PanelButtonList.set(idx_to, temp);
@@ -402,11 +488,16 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
 	}
 	private void CalcButtonOffset()
 	{
-		int btnoffsetx = 0;
-		int btnoffsety = 20 + -20 * PanelPageIndex;
-		int size = PanelButtonList.size();
 		Mode mode; 
-		for(int i =0; i<size; ++i)
+		int btnoffsetx = 0;
+		int btnoffsety = 20;
+		int size = PanelButtonList.size();
+		for(int i= 0; i< PanelPageIndex-1; ++i)
+		{
+			CustomTexButton button = PanelButtonList.get(i);
+			button.yPosition = -10000;
+		}
+		for(int i = PanelPageIndex; i<size; ++i)
 		{
 			CustomTexButton button = PanelButtonList.get(i);
 			mode = button.panel.getMode();
@@ -432,7 +523,7 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
 	{
 		if(nowTargetPanelB!=null)changePanelSettingGuiPos(nowTargetPanelB.panel.getMode(), -1000);
 		nowTargetPanelB = panelButton;
-		if(nowTargetPanelB!=null)changePanelSettingGuiPos(nowTargetPanelB.panel.getMode(), settingButtonsOffsetX);
+		if(nowTargetPanelB!=null)changePanelSettingGuiPos(nowTargetPanelB.panel.getMode(), settingButtonsOffsetX+guiLeft);
 	}
 	
 	private void changePanelSettingGuiPos(IProgramPanel.Mode mode, int x)
@@ -443,10 +534,16 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
 			for(GUIStoryBoardSettingPart button : ButtonGroupListSet){button.setPos(x);} nowSelectedSettingList = ButtonGroupListSet; break;
 		case timer : 
 			for(GUIStoryBoardSettingPart button : ButtonGroupListTimer){button.setPos(x);} nowSelectedSettingList = ButtonGroupListTimer; break;
-		case linear : 
-			for(GUIStoryBoardSettingPart button : ButtonGroupListRun){button.setPos(x);} nowSelectedSettingList = ButtonGroupListRun; break;
+		case keyframe : 
+			for(GUIStoryBoardSettingPart button : ButtonGroupListKeyFrame){button.setPos(x);} nowSelectedSettingList = ButtonGroupListKeyFrame; break;
 		case loop : 
 			for(GUIStoryBoardSettingPart button : ButtonGroupListLoop){button.setPos(x);} nowSelectedSettingList = ButtonGroupListLoop; break;
+		case wait : 
+			for(GUIStoryBoardSettingPart button : ButtonGroupListWait){button.setPos(x);} nowSelectedSettingList = ButtonGroupListWait; break;
+		case notify :
+			for(GUIStoryBoardSettingPart button : ButtonGroupListNotify){button.setPos(x);} nowSelectedSettingList = ButtonGroupListNotify; break;		
+		case sound :
+			for(GUIStoryBoardSettingPart button : ButtonGroupListSound){button.setPos(x);} nowSelectedSettingList = ButtonGroupListSound; break;
 		case loopend : break;
 		}
 	}
@@ -464,13 +561,19 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
     	}
         
         int start = PanelPageIndex;
-        int num = 10; //TODO
-        int end = (start+num < PanelButtonList.size()) ? start+num : PanelButtonList.size();
+//        int num = height/22; //TODO
+        int yoffset = 0;
+        int end = PanelButtonList.size();// (start+num < PanelButtonList.size()) ? start+num : PanelButtonList.size();
         for (int i = start; i < end; ++i)
         {
         	CustomTexButton button = PanelButtonList.get(i);
         	button.drawButton2(this.mc, x, y);
     		this.fontRendererObj.drawString(""+i, button.xPosition-15, button.yPosition, 0x404040);
+    		this.fontRendererObj.drawString(
+        			button.panel.displayDescription(),
+        			button.xPosition+25, button.yPosition+8, 0xffffff);
+    		yoffset += button.height;
+    		if(yoffset >= height-70)break;
         }
         
         
@@ -478,6 +581,7 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
         {
         	part.Draw();
         }
+        
     }
 	@Override
     public void drawWorldBackground(int p_146270_1_)
@@ -492,7 +596,7 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
         }
     }
     
-	/*GUI‚Ì•¶š“™‚Ì•`‰æˆ—*/
+	/*GUIã®æ–‡å­—ç­‰ã®æç”»å‡¦ç†*/
     @Override
     protected void drawGuiContainerForegroundLayer(int mouseX, int mouseZ)
     {
@@ -504,14 +608,9 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
 //        {
 //        	this.fontRendererObj.drawString(g.name,g.x,g.y,0x404040);
 //        }
-        
-//        drawString(this.fontRendererObj, ""+ERC_BlockRailManager.clickedTileForGUI.GetPosNum(), 43, 29, 0xffffff);
-//        drawString(this.fontRendererObj, String.format("%d",tile.getLimitFrameLength()), 57, 20, 0xffffff);
-//        drawString(this.fontRendererObj, String.format("%d",tile.getLimitFrameWidth()), 57, 50, 0xffffff);
-//        fontRendererObj.drawString(""+tile.copyNum, 97, 91, 0x404040);
     }
  
-    /*GUI‚Ì”wŒi‚Ì•`‰æˆ—*/
+    /*GUIã®èƒŒæ™¯ã®æç”»å‡¦ç†*/
     @Override
     protected void drawGuiContainerBackgroundLayer(float partialTick, int mouseX, int mouseZ)
     {
@@ -524,12 +623,12 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
         int l = 0;//(this.height - this.ySize) / 2;
         this.drawTexturedModalRect(k, l, 0, 0, this.xSize, ySize, this.xSize, 100);
 
-    	//‘I‘ğ’†ƒpƒlƒ‹‚Ì–îˆó
+    	//é¸æŠä¸­ãƒ‘ãƒãƒ«ã®çŸ¢å°
         if(nowTargetPanelB!=null)
         {
         	int height = nowTargetPanelB.height;
 	        this.mc.renderEngine.bindTexture(TEX_ARROW);
-	        this.drawTexturedModalRect(nowTargetPanelB.xPosition+120, nowTargetPanelB.yPosition, 0, 0, 6, height, 6, height);
+	        this.drawTexturedModalRect(nowTargetPanelB.xPosition+guiLeft+120, nowTargetPanelB.yPosition, 0, 0, 6, height, 6, height);
         }
     }
     
@@ -546,7 +645,7 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
         tessellator.draw();
     }
  
-    /*GUI‚ªŠJ‚¢‚Ä‚¢‚é‚ÉƒQ[ƒ€‚Ìˆ—‚ğ~‚ß‚é‚©‚Ç‚¤‚©B*/
+    /*GUIãŒé–‹ã„ã¦ã„ã‚‹æ™‚ã«ã‚²ãƒ¼ãƒ ã®å‡¦ç†ã‚’æ­¢ã‚ã‚‹ã‹ã©ã†ã‹ã€‚*/
     @Override
     public boolean doesGuiPauseGame()
     {

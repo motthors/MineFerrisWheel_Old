@@ -1,6 +1,6 @@
 package mfw.util;
 
-import MTYlib.blocksReplication.BlocksCompressor;
+import mfw.blocksReplication.BlocksCompressor;
 import mfw.wrapper.IMultiThreadBlockCopy;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;

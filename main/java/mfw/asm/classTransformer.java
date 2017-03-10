@@ -10,96 +10,121 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 import cpw.mods.fml.common.asm.transformers.deobf.FMLDeobfuscatingRemapper;
-import cpw.mods.fml.relauncher.FMLLaunchHandler;
 import cpw.mods.fml.relauncher.FMLRelaunchLog;
+import mfw.asm.transpack.TransPack;
 import net.minecraft.launchwrapper.IClassTransformer;
 
 public class classTransformer implements IClassTransformer {
 
+	public void log(String str)
+	{
+		FMLRelaunchLog.info(str);
+	}
+	
 	// 改変対象のクラスの完全修飾名
 	private static final String TARGET_CLASS_NAME = "net.minecraft.client.renderer.EntityRenderer";
 	static int counter = 0;
 	@Override
 	public byte[] transform(String name, String transformedName, byte[] bytes) 
 	{
-//		FMLRelaunchLog.info("MFWTransformLog : Classname'%s'++'%s'", name, transformedName);
-		if (!TARGET_CLASS_NAME.equals(transformedName) 
-//				&& !("net.minecraft.client.settings.GameSettings".equals(transformedName))
-//				&& !("net.minecraft.client.renderer.RenderGlobal".equals(transformedName))
-				)return bytes;
-		if(FMLLaunchHandler.side().isServer())return bytes;
-		
-		ClassReader cr = new ClassReader(bytes); 	// byte配列を読み込み、利用しやすい形にする。
-		ClassWriter cw = new ClassWriter(cr, 1); 	// これのvisitを呼ぶことによって情報が溜まっていく。
-		ClassVisitor cv;
-//		if(!("net.minecraft.client.renderer.RenderGlobal".equals(transformedName)))
-			cv = new ClassAdapter(cw); 	// Adapterを通して書き換え出来るようにする。
-//		else cv = new ClassAdapter2(cw);
-		cr.accept(cv, 0); 							// 元のクラスと同様の順番でvisitメソッドを呼んでくれる
-		return cw.toByteArray(); 					// Writer内の情報をbyte配列にして返す。
+		try{
+			
+			////////// 各クラスが順番に呼ばれてくる //////////
+			//if(transformedName.contains("net.minecraft.world.World")) 
+			//	log("TransformLog : transform : name:"+name+" :: Tname:"+transformedName+":side:"+Thread.currentThread().getName());
+			
+			// 今流れてきているクラスが変換対象として登録されていたらそのpackを持ってくる
+			TransPack pack = transformerMap.getInstance().getTransPack(transformedName);
+			
+			// packが無ければそのまま帰る
+			if( pack == null ) return bytes;
+
+			pack.nowTarget = transformedName;
+			
+			ClassReader cr = new ClassReader(bytes); 			// byte配列を読み込み、利用しやすい形にする。
+			ClassWriter cw = new ClassWriter(cr, 2); 			// これのvisitを呼ぶことによって情報が溜まっていく。
+			ClassVisitor ca = new _2_classAdapter(cw, pack); 	// Adapterを通して書き換え出来るようにする。
+			
+			// ClassReaderが、受け取ったClassAdapterの各Visitメソッドを元のクラスと同様の順番で呼ぶ
+			cr.accept(ca, 0); 							
+			
+			pack.addMember(cw);
+			
+			// Writer内の情報をbyte配列にして返す。
+			return cw.toByteArray();
+			
+		}
+		catch(ClassCircularityError e)
+		{
+			return bytes;
+		}
+		catch(NullPointerException e)
+		{
+			return bytes;
+		}
 	}
 
-	public static class ClassAdapter extends ClassVisitor 
-	{
-		public ClassAdapter(ClassVisitor cv)
-		{
-			super(ASM5, cv);
-		}
-
-		/**
-		 * メソッドについて呼ばれる。
-		 * 
-		 * @param access  {@link Opcodes}に載ってるやつ。publicとかstaticとかの状態がわかる。
-		 * @param name	メソッドの名前。
-		 * @param desc メソッドの(引数と返り値を合わせた)型。
-		 * @param signature   ジェネリック部分を含むメソッドの(引数と返り値を合わせた)型。ジェネリック付きでなければおそらくnull。
-		 * @param exceptions  throws句にかかれているクラスが列挙される。Lと;で囲われていないので  {@link String#replace(char, char)}で'/'と'.'を置換してやればOK。
-		 * @return ここで返したMethodVisitorのメソッド群が適応される。  ClassWriterがセットされていればMethodWriterがsuperから降りてくる。
-		 */
-		private static final String TARGET_TRANSFORMED_NAME = "func_78471_a";
-		private static final String TARGET_Original_NAME = "renderWorld";
-		private static final String TARGET_DESC = "(FJ)V";
-		
-		private static final String TARGET_TRANSFORMED_NAME_renderdist = "func_78479_a";
-		private static final String TARGET_Original_NAME_renderdist = "setupCameraTransform";
-		private static final String TARGET_DESC_renderdist = "(FI)V";
-		@Override
-		public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions)
-		{
-			
-			// ターゲット関数かどうかを判定し、
-//			if (TARGET_TRANSFORMED_NAME.equals(mapMethodName(TARGET_CLASS_NAME, name, desc))
-//					&& toDesc(int.class, "net.minecraft.item.ItemStack").equals(desc)) 
-			FMLRelaunchLog.info("MFWTransformLog : visitMethod : name'%s%s'", name, desc);
-			boolean flag = false;
-			flag |= TARGET_TRANSFORMED_NAME.equals(mapMethodName(TARGET_CLASS_NAME, name, desc));
-			flag |= TARGET_Original_NAME.equals(mapMethodName(TARGET_CLASS_NAME, name, desc));
-			if(flag && TARGET_DESC.equals(desc))
-			{
-				return new MethodAdapter(super.visitMethod(access, name, desc, signature, exceptions));
-			}
-			
-			flag = false;
-			flag |= TARGET_TRANSFORMED_NAME_renderdist.equals(mapMethodName(TARGET_CLASS_NAME, name, desc));
-			flag |= TARGET_Original_NAME_renderdist.equals(mapMethodName(TARGET_CLASS_NAME, name, desc));
-			if(flag && TARGET_DESC_renderdist.equals(desc))
-			{
-				return new MethodAdapter_setupCameraTransform(super.visitMethod(access, name, desc, signature, exceptions));
-			}
-			
-//			flag = false;
-//			flag |= "a".equals(name);
-//			flag |= "setOptionFloatValue".equals(mapMethodName("net.minecraft.client.settings.GameSettings", name, desc));
-//			if(flag &&
-//					("(Lnet/minecraft/client/settings/GameSettings$Options;F)V".equals(desc)
-//							|| "(Lbbm;F)V".equals(desc)))
+//	public static class ClassAdapter extends ClassVisitor 
+//	{
+//		public ClassAdapter(ClassVisitor cv)
+//		{
+//			super(ASM5, cv);
+//		}
+//
+//		/**
+//		 * メソッドについて呼ばれる。
+//		 * 
+//		 * @param access  {@link Opcodes}に載ってるやつ。publicとかstaticとかの状態がわかる。
+//		 * @param name	メソッドの名前。
+//		 * @param desc メソッドの(引数と返り値を合わせた)型。
+//		 * @param signature   ジェネリック部分を含むメソッドの(引数と返り値を合わせた)型。ジェネリック付きでなければおそらくnull。
+//		 * @param exceptions  throws句にかかれているクラスが列挙される。Lと;で囲われていないので  {@link String#replace(char, char)}で'/'と'.'を置換してやればOK。
+//		 * @return ここで返したMethodVisitorのメソッド群が適応される。  ClassWriterがセットされていればMethodWriterがsuperから降りてくる。
+//		 */
+//		private static final String TARGET_TRANSFORMED_NAME = "func_78471_a";
+//		private static final String TARGET_Original_NAME = "renderWorld";
+//		private static final String TARGET_DESC = "(FJ)V";
+//		
+//		private static final String TARGET_TRANSFORMED_NAME_renderdist = "func_78479_a";
+//		private static final String TARGET_Original_NAME_renderdist = "setupCameraTransform";
+//		private static final String TARGET_DESC_renderdist = "(FI)V";
+//		@Override
+//		public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions)
+//		{
+//			
+//			// ターゲット関数かどうかを判定し、
+////			if (TARGET_TRANSFORMED_NAME.equals(mapMethodName(TARGET_CLASS_NAME, name, desc))
+////					&& toDesc(int.class, "net.minecraft.item.ItemStack").equals(desc)) 
+//			FMLRelaunchLog.info("MFWTransformLog : visitMethod : name'%s%s'", name, desc);
+//			boolean flag = false;
+//			flag |= TARGET_TRANSFORMED_NAME.equals(mapMethodName(TARGET_CLASS_NAME, name, desc));
+//			flag |= TARGET_Original_NAME.equals(mapMethodName(TARGET_CLASS_NAME, name, desc));
+//			if(flag && TARGET_DESC.equals(desc))
 //			{
-//				return new MethodAdapter_DoubleChunk(super.visitMethod(access, name, desc, signature, exceptions));
+//				return new MethodAdapter(super.visitMethod(access, name, desc, signature, exceptions));
 //			}
-			
-			return super.visitMethod(access, name, desc, signature, exceptions);
-		}
-	}
+//			
+//			flag = false;
+//			flag |= TARGET_TRANSFORMED_NAME_renderdist.equals(mapMethodName(TARGET_CLASS_NAME, name, desc));
+//			flag |= TARGET_Original_NAME_renderdist.equals(mapMethodName(TARGET_CLASS_NAME, name, desc));
+//			if(flag && TARGET_DESC_renderdist.equals(desc))
+//			{
+//				return new MethodAdapter_setupCameraTransform(super.visitMethod(access, name, desc, signature, exceptions));
+//			}
+//			
+////			flag = false;
+////			flag |= "a".equals(name);
+////			flag |= "setOptionFloatValue".equals(mapMethodName("net.minecraft.client.settings.GameSettings", name, desc));
+////			if(flag &&
+////					("(Lnet/minecraft/client/settings/GameSettings$Options;F)V".equals(desc)
+////							|| "(Lbbm;F)V".equals(desc)))
+////			{
+////				return new MethodAdapter_DoubleChunk(super.visitMethod(access, name, desc, signature, exceptions));
+////			}
+//			
+//			return super.visitMethod(access, name, desc, signature, exceptions);
+//		}
+//	}
 
 	
 	public static class MethodAdapter extends MethodVisitor {
@@ -328,65 +353,4 @@ public class classTransformer implements IClassTransformer {
 			throw new IllegalArgumentException();
 		}
 	}
-
-	
-
-	
-	
-	
-//	private byte[] hookCameraProccessMethod(String untransformName, byte[] bytes) {
-//	// ASMで、bytesに格納されたクラスファイルを解析します。
-//	ClassNode cnode = new ClassNode();
-//	ClassReader reader = new ClassReader(bytes);
-//	reader.accept(cnode, 0);
-//
-//	// 改変対象のメソッド名です
-//	String targetMethodName = "func_78467_g";
-//	String targetMethodName2 = "orientCamera";
-//
-//	// 改変対象メソッドの戻り値型および、引数型をあらわします ※１
-//	String targetMethoddesc = "(F)V";
-//
-//	// 対象のメソッドを検索取得します。
-//	MethodNode mnode = null;
-//	for (MethodNode curMnode : (List<MethodNode>) cnode.methods) {
-//		String translateMethodName = FMLDeobfuscatingRemapper.INSTANCE.mapMethodName(untransformName, curMnode.name,
-//				curMnode.desc);
-//		String translateMethodDesc = FMLDeobfuscatingRemapper.INSTANCE.mapMethodDesc(curMnode.desc);
-//		FMLRelaunchLog.info("ERCTransformLog : Classname'%s', Tname'%s', Uname'%s', Tdesc'%s'", untransformName,
-//				translateMethodName, curMnode.name, translateMethodDesc);
-//
-//		if ((targetMethodName.equals(translateMethodName)
-//				|| (targetMethodName2.equals(curMnode.name)) && targetMethoddesc.equals(translateMethodDesc))) {
-//			mnode = curMnode;
-//			break;
-//		}
-//	}
-//
-//	if (mnode != null) {
-//		InsnList overrideList = new InsnList();
-//
-//		// メソッドコールを、バイトコードであらわした例です。
-//		overrideList.add(new VarInsnNode(Opcodes.FLOAD, 1));
-//		// overrideList.add(new VarInsnNode(DLOAD, 2));
-//		// overrideList.add(new VarInsnNode(DLOAD, 4));
-//		// overrideList.add(new VarInsnNode(DLOAD, 6));
-//		// overrideList
-//		// .add(new MethodInsnNode(INVOKESTATIC, "tutorial/test",
-//		// "passTestRender", "(LEntityLiving;DDD)V"));
-//		overrideList.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "erc/manager/ERC_CoasterAndRailManager",
-//				"CameraProc", "(F)V", false));
-//
-//		// mnode.instructions.get(1)で、対象のメソッドの先頭を取得
-//		// mnode.instructions.insertで、指定した位置にバイトコードを挿入します。
-//		mnode.instructions.insert(mnode.instructions.get(1), overrideList);
-//
-//		// 改変したクラスファイルをバイト列に書き出します
-//		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-//		cnode.accept(cw);
-//		bytes = cw.toByteArray();
-//		FMLRelaunchLog.info("ERCTransformLog : complete rewrite");
-//	}
-//	return bytes;
-//}
 }

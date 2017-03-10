@@ -40,7 +40,7 @@ public class MFW_GUIHandler implements IGuiHandler {
 		case MFW_Core.GUIID_FerrisCutter :
 			return new DefContainer(x, y, z, tile);
 		case MFW_Core.GUIID_FerrisStoryBoard :
-			return new DefContainer(x, y, z, tile);
+			return new DefContainer(x, y, z, ((TileEntityFerrisWheel) tile).getSelectedPartTile());
 		}
 		return null;
 	}
@@ -65,7 +65,7 @@ public class MFW_GUIHandler implements IGuiHandler {
 		case MFW_Core.GUIID_FerrisCutter :
 			return new GUIFerrisCutter(x, y, z, player.inventory, (TileEntityFerrisCutter) tile);
 		case MFW_Core.GUIID_FerrisStoryBoard :
-			return new GUIStoryBoard(x, y, z, (TileEntityFerrisWheel) tile);
+			return new GUIStoryBoard(x, y, z, ((TileEntityFerrisWheel) tile).getSelectedPartTile());
 		}
 		return null;
 	}

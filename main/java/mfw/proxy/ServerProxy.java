@@ -1,8 +1,10 @@
 package mfw.proxy;
 
-import MTYlib.blocksReplication.ConstructorBlocksVertex;
-import MTYlib.blocksReplication.MTYBlockAccess;
 import cpw.mods.fml.relauncher.Side;
+import mfw.blocksReplication.ConstructorBlocksVertex;
+import mfw.blocksReplication.MTYBlockAccess;
+import mfw.sound.FerrisFrameSound;
+import net.minecraft.entity.player.EntityPlayer;
 
 public class ServerProxy implements IProxy{
 	
@@ -40,4 +42,13 @@ public class ServerProxy implements IProxy{
 	{
 		return Side.SERVER;
 	}
+	
+	public EntityPlayer getClientPlayer()
+	{
+		return null;
+	}
+	
+	
+	public void PlaySound(FerrisFrameSound sound)
+	{}
 }

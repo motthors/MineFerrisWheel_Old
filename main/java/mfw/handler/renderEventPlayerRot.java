@@ -57,7 +57,6 @@ public class renderEventPlayerRot {
 	@SubscribeEvent(priority=EventPriority.HIGHEST)
 	public void renderPost(RenderLivingEvent.Post event)
 	{
-		@SuppressWarnings("unused")
 		entityPartSitEx coaster;
 		if ((coaster = getSeat(event.entity)) == null) {
 			return;

@@ -13,11 +13,23 @@ public interface IProgramPanel {
 		loop,		//繰り返し
 		wait,		//フラグ待機
 		notify,		//通知
+		sound,
 		loopend,
+		;
+		public static Mode getType(final String src) {
+			Mode[] Modes = Mode.values();
+	        for (Mode m : Modes) {if (m.toString() == src) { return m;}}
+	        return null;
+	    }
 	}
 	public enum Type{
 		change,
 		inputvalue,
+		soundselector,
+	}
+	public enum Notify{
+		redstone,
+		notify,
 	}
 	public class DataPack{
 		public DataPack(Type t, String s){type=t; description=s;}
@@ -39,6 +51,9 @@ public interface IProgramPanel {
 	public void start();
 	public boolean CanDoNext();
 	public boolean run(); //retval : true=終了
+	public void RSHandler();
+	public void NotifyHandler();
 	public void fromString(String source);
+	public String displayDescription();
 }
 

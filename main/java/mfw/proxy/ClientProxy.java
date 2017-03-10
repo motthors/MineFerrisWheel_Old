@@ -1,13 +1,13 @@
 package mfw.proxy;
 
-import MTYlib.blocksReplication.ConstructorBlocksVertex;
-import MTYlib.blocksReplication.MTYBlockAccess;
 import cpw.mods.fml.client.registry.ClientRegistry;
 import cpw.mods.fml.client.registry.RenderingRegistry;
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.relauncher.Side;
 import erc._core.ERC_Core;
+import mfw.blocksReplication.ConstructorBlocksVertex;
+import mfw.blocksReplication.MTYBlockAccess;
 import mfw.entity.entityFerrisBasket;
 import mfw.entity.entityPartSit;
 import mfw.entity.entityPartSitEx;
@@ -25,11 +25,13 @@ import mfw.renderer.renderEntityNon;
 import mfw.renderer.renderEntityPartsTest;
 import mfw.renderer.renderTileEntityFerrisWheel;
 import mfw.renderer.renderTileEntityLimitFrame;
+import mfw.sound.FerrisFrameSound;
 import mfw.tileEntity.TileEntityFerrisBasketConstructor;
 import mfw.tileEntity.TileEntityFerrisConstructor;
 import mfw.tileEntity.TileEntityFerrisCutter;
 import mfw.tileEntity.TileEntityFerrisWheel;
 import net.minecraft.client.Minecraft;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.common.MinecraftForge;
 
 public class ClientProxy implements IProxy{
@@ -103,5 +105,15 @@ public class ClientProxy implements IProxy{
 	public Side checkSide()
 	{
 		return Side.CLIENT;
+	}
+	
+	public EntityPlayer getClientPlayer()
+	{
+		return Minecraft.getMinecraft().thePlayer;
+	}
+
+	public void PlaySound(FerrisFrameSound sound)
+	{
+		Minecraft.getMinecraft().getSoundHandler().playSound(sound);
 	}
 }

@@ -22,7 +22,7 @@ message.command.sync.false=Disable angle synchronization from the server.
 message.command.renderdist=Render distance magnification is changed.
 message.coreGUI.sync.cannotregisttoparent=Can't be synchronize the wheel of the parent of the synchronization turn.
 
-message.error.repos=Mod file is broken. Try to download it again.
+message.error.repos=no longer valid
 
 gui.core.switch.changemode=Change Mode
 gui.core.text.modename0=Normal Rotation

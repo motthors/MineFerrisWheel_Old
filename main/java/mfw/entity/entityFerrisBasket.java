@@ -5,13 +5,13 @@ import java.util.List;
 
 import org.lwjgl.opengl.GL11;
 
-import MTYlib.blocksReplication.BlocksReplication;
 import cpw.mods.fml.client.FMLClientHandler;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import mfw._core.MFW_Core;
 import mfw._core.connectPos;
 import mfw.block.blockSeatToSitDown;
+import mfw.blocksReplication.BlocksReplication;
 import mfw.item.itemBlockRemoteController;
 import mfw.math.MFW_Math;
 import mfw.tileEntity.TileEntityFerrisWheel;
@@ -201,14 +201,15 @@ public class entityFerrisBasket extends Entity implements I_FerrisPart{
 
 	public void setPositionToRoot(TileEntityFerrisWheel tile, Vec3 posInOut)
 	{
-		posInOut.xCoord *= tile.wheelSize;
-		posInOut.yCoord *= tile.wheelSize;
-		posInOut.zCoord *= tile.wheelSize;
+		float size = tile.wheelSize.get();
+		posInOut.xCoord *= size;
+		posInOut.yCoord *= size;
+		posInOut.zCoord *= size;
 		MFW_Math.rotateAroundVector(posInOut,
 				tile.rotvecConst_meta2.xCoord, tile.rotvecConst_meta2.yCoord, tile.rotvecConst_meta2.zCoord,
 				Math.toRadians(-tile.rotConst_meta2));
 		
-		MFW_Math.rotateAroundVector(posInOut, 0, 0, 1, Math.toRadians(-tile.rotation));
+		MFW_Math.rotateAroundVector(posInOut, 0, 0, 1, Math.toRadians(-tile.rotation.get()));
 
 		MFW_Math.rotateAroundVector(posInOut, 0, 1, 0, Math.toRadians(-tile.rotVar2));
 		MFW_Math.rotateAroundVector(posInOut, 1, 0, 0, Math.toRadians(-tile.rotVar1));
@@ -307,7 +308,7 @@ public class entityFerrisBasket extends Entity implements I_FerrisPart{
 		super.onUpdate();
 		theta += 0.05;
 		if(theta>Math.PI*2)theta -= Math.PI*2;
-		float rot = parentTile.rotation;
+		float rot = parentTile.rotation.get();
 //		if(worldObj.isRemote)rot+=2f;
 		setAngle((float) Math.toRadians(rot)+angleOffset);
 		setPosition();
@@ -658,13 +659,13 @@ public class entityFerrisBasket extends Entity implements I_FerrisPart{
 	{
 		return;
 	}
-	public void renderChildren(double x, double y, double z, float f)
+	public void renderThis(double x, double y, double z, float f)
 	{
 		return;
 	}
 
 	@Override
-	public void renderChildrenPostPass(double x, double y, double z, float f)
+	public void renderThisPostPass(double x, double y, double z, float f)
 	{
 		return;
 	}

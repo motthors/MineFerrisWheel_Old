@@ -22,7 +22,7 @@ public class renderTileEntityFerrisWheel extends TileEntitySpecialRenderer {
 		GL11.glPushMatrix();
 //		GL11.glTranslatef(-0.5f, -0.5f, -0.5f);
 		GL11.glTranslated(x, y, z);
-      	t.renderChildren(x,y,z,f);
+      	t.renderThis(x,y,z,f);
       	renderPass1Hook.add(t);
       	GL11.glPopMatrix();
 //      	GL11.glPopMatrix();
@@ -30,7 +30,6 @@ public class renderTileEntityFerrisWheel extends TileEntitySpecialRenderer {
 	
 	public void p_bindTexture(ResourceLocation texture){this.bindTexture(texture);}
 	
-	@SuppressWarnings("unused")
 	private void DrawArrow(Tessellator tess, Vec3 vec)
 	{
       	tess.startDrawing(GL11.GL_TRIANGLES);

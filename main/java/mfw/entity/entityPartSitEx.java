@@ -128,14 +128,15 @@ public class entityPartSitEx extends entityPartSit {
 	
 	public void setPositionToRoot(TileEntityFerrisWheel tile, Vec3 posInOut)
 	{
-		posInOut.xCoord *= tile.wheelSize;
-		posInOut.yCoord *= tile.wheelSize;
-		posInOut.zCoord *= tile.wheelSize;
+		float size = tile.wheelSize.get();
+		posInOut.xCoord *= size;
+		posInOut.yCoord *= size;
+		posInOut.zCoord *= size;
 		MFW_Math.rotateAroundVector(posInOut,
 				tile.rotvecConst_meta2.xCoord, tile.rotvecConst_meta2.yCoord, tile.rotvecConst_meta2.zCoord,
 				Math.toRadians(-tile.rotConst_meta2));
 		
-		MFW_Math.rotateAroundVector(posInOut, 0, 0, 1, Math.toRadians(-tile.rotation));
+		MFW_Math.rotateAroundVector(posInOut, 0, 0, 1, Math.toRadians(-tile.rotation.get()));
 
 		MFW_Math.rotateAroundVector(posInOut, 0, 1, 0, Math.toRadians(-tile.rotVar2));
 		MFW_Math.rotateAroundVector(posInOut, 1, 0, 0, Math.toRadians(-tile.rotVar1));
@@ -249,7 +250,7 @@ public class entityPartSitEx extends entityPartSit {
 		Vec3 _vy = ERC_MathHelper.rotateAroundVector(vy, tile.rotvecConst_meta2, drot);
 		Vec3 _vz = ERC_MathHelper.rotateAroundVector(vz, tile.rotvecConst_meta2, drot);
 		
-		drot = Math.toRadians(tile.rotation);// - parenttile.prevRotation;
+		drot = Math.toRadians(tile.rotation.get());// - parenttile.prevRotation;
 		Vec3 vecrot = Vec3.createVectorHelper(0, 0, -1);
 		_vx = ERC_MathHelper.rotateAroundVector(_vx, vecrot, drot);
 		_vy = ERC_MathHelper.rotateAroundVector(_vy, vecrot, drot);

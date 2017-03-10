@@ -1,8 +1,10 @@
 package mfw.proxy;
 
-import MTYlib.blocksReplication.ConstructorBlocksVertex;
-import MTYlib.blocksReplication.MTYBlockAccess;
 import cpw.mods.fml.relauncher.Side;
+import mfw.blocksReplication.ConstructorBlocksVertex;
+import mfw.blocksReplication.MTYBlockAccess;
+import mfw.sound.FerrisFrameSound;
+import net.minecraft.entity.player.EntityPlayer;
 
 public interface IProxy{
 	public int getNewRenderType();
@@ -13,4 +15,7 @@ public interface IProxy{
 	public ConstructorBlocksVertex getrendererFerrisWheel(MTYBlockAccess ba);
 //	public rendererFerrisBasket getrendererFerrisBasket(MTYBlockAccess ba, int side, int meta, float ox, float oy, float oz);
 	public Side checkSide();
+	
+	public EntityPlayer getClientPlayer();
+	public void PlaySound(FerrisFrameSound sound);
 }

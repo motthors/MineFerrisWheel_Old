@@ -35,6 +35,7 @@ public class GUIFerrisConstructor extends GuiContainer {
     
     int ButtonIDFlagDrawCore;
     int ButtonIDFlagDrawEntity;
+    int ButtonIDFlagCopyMode;
     
     class GUIName{
 		String name;
@@ -86,12 +87,14 @@ public class GUIFerrisConstructor extends GuiContainer {
 		addButton1(50, 26, 150, 52, "Create!", MessageFerrisMisc.GUIConstruct);
 		
 		ButtonIDFlagDrawCore = buttonid;
-		addButton1(24, 13, 70, 110, tile.FlagDrawCore?"ON":"OFF", "draw core", MessageFerrisMisc.GUIDrawCoreFlag);
+		addButton1(24, 13, 70, 120, tile.FlagDrawCore?"ON":"OFF", "draw core", MessageFerrisMisc.GUIDrawCoreFlag);
 		
-		addButton2(30, 88, "copy", MessageFerrisMisc.GUIAddCopyNum);
+		addButton2(30, 84, "copy", MessageFerrisMisc.GUIAddCopyNum);
 		ButtonIDFlagDrawEntity = buttonid;
-		addButton1(24, 13, 70, 130, tile.FlagDrawEntity?"ON":"OFF", "draw Mobs", MessageFerrisMisc.GUIDrawEntityFlag);
+		addButton1(24, 13, 70, 140, tile.FlagDrawEntity?"ON":"OFF", "draw Mobs", MessageFerrisMisc.GUIDrawEntityFlag);
 		
+		ButtonIDFlagCopyMode = buttonid;
+		addButton1(34, 13, 60, 100, tile.copymode==0?"Add":"Clone", "copy mode", MessageFerrisMisc.GUICopyModeChange);
     }
 
 	public void addButton1(int lenx, int leny, int posx, int posy, String str, int flag)
@@ -187,7 +190,7 @@ public class GUIFerrisConstructor extends GuiContainer {
 //        drawString(this.fontRendererObj, ""+ERC_BlockRailManager.clickedTileForGUI.GetPosNum(), 43, 29, 0xffffff);
         drawString(this.fontRendererObj, String.format("%d",tile.getLimitFrameLength()), 57, 20, 0xffffff);
         drawString(this.fontRendererObj, String.format("%d",tile.getLimitFrameWidth()), 57, 50, 0xffffff);
-        fontRendererObj.drawString(""+tile.copyNum, 97, 91, 0x404040);
+        fontRendererObj.drawString(""+tile.copyNum, 97, 84, 0x404040);
     }
  
     /*GUIÇÃîwåiÇÃï`âÊèàóù*/
@@ -265,6 +268,9 @@ public class GUIFerrisConstructor extends GuiContainer {
 			break;
 		case MessageFerrisMisc.GUIDrawEntityFlag:
 			((GuiButtonExt)buttonList.get(ButtonIDFlagDrawEntity)).displayString = tile.FlagDrawEntity?"OFF":"ON";
+			break;
+		case MessageFerrisMisc.GUICopyModeChange:
+			((GuiButtonExt)buttonList.get(ButtonIDFlagCopyMode)).displayString = tile.copymode==0?"Clone":"Add";
 			break;
 		}
 

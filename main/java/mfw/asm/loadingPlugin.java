@@ -47,6 +47,7 @@ public class loadingPlugin implements IFMLLoadingPlugin {
 
 	@Override
 	public String getAccessTransformerClass() {
-		return "mfw.asm.classTransformer";
+//		return "mfw.asm.classTransformer";
+		return null;
 	}
 }

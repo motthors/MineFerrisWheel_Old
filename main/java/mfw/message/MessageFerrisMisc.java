@@ -25,6 +25,7 @@ public class MessageFerrisMisc implements IMessage, IMessageHandler<MessageFerri
 	public static final int GUIDrawCoreFlag = 5;
 	public static final int GUIDrawEntityFlag = 6;
 	public static final int GUIConstructSendTagArray = 7;
+	public static final int GUICopyModeChange = 8;
 	
 	public static final int GUIBConstruct = 50;
 	public static final int GUIBAddOutLength = 51;
@@ -49,6 +50,7 @@ public class MessageFerrisMisc implements IMessage, IMessageHandler<MessageFerri
 	public static final int GUICoreSyncClear = 207;
 	public static final int GUICoreRSFlagRotate = 208;
 	public static final int GUICoreLock = 209;
+	public static final int GUICoreSetSound = 210;
 	
 	public static final int GUICoreSyncMode = 298;
 	public static final int GUICoreModeChange = 299;
@@ -69,6 +71,9 @@ public class MessageFerrisMisc implements IMessage, IMessageHandler<MessageFerri
 	public static final int GUIOpenStoryBoard = 600;
 	public static final int GUICloseStoryBoard = 601;
 	public static final int GUIStoryBoardSendData = 602;
+	
+	public static final int GUICoreSoundSelectUp = 700;
+	public static final int GUICoreSoundSelectDown = 701;
 	
 	public static final int GUIBackPartGUIOpen = 9999;
 	public static final int GUISubPartGUIOpenBase = 10000; // +ƒ¿
@@ -164,6 +169,9 @@ public class MessageFerrisMisc implements IMessage, IMessageHandler<MessageFerri
 //    		ctx.getServerHandler().playerEntity.worldObj.playSoundAtEntity(player, MFW_Core.MODID+":complete", 1.0F, 1.0F);
     		((TileEntityFerrisConstructor) tile).SetItemFerrisWheel(message.MiscInt, message.arrayByte);
     		break;
+    	case GUICopyModeChange:
+    		((TileEntityFerrisConstructor) tile).rotateCopyMode(); 
+    		break;
 			//////////////////////////////// GUI BasketConstruct ////////////////////////////////
 //    	case GUIBConstruct: ‚±‚ê‚à‚±‚È‚¢
 //    		if(!((TileEntityFerrisBasketConstructor) tile).isExistBasket(player))break;
@@ -231,6 +239,12 @@ public class MessageFerrisMisc implements IMessage, IMessageHandler<MessageFerri
     		((TileEntityFerrisWheel)tile).getRootParent().toggleLock();
     		return null;
 			
+    	case GUICoreSetSound :
+    	case GUICoreSoundSelectUp :
+    	case GUICoreSoundSelectDown :
+    		((TileEntityFerrisWheel)tile).SetSoundIndex(message.MiscInt);
+    		break;
+    		
     	case GUICoreStop:
     		((TileEntityFerrisWheel) tile).getSelectedPartTile().toggleStopFlag();
 			break;	

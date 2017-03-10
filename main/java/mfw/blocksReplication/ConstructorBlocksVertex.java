@@ -1,9 +1,9 @@
-package MTYlib.blocksReplication;
+package mfw.blocksReplication;
 
 import org.lwjgl.opengl.GL11;
 
-import MTYlib.blocksReplication.MTYBlockAccess.renderPiece;
 import mfw._core.MFW_Core;
+import mfw.blocksReplication.MTYBlockAccess.renderPiece;
 import mfw.handler.renderEventCompileWheel;
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.GLAllocation;

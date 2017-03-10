@@ -40,6 +40,7 @@ import mfw.item.itemFerrisBasket;
 import mfw.item.itemFerrisSeed;
 import mfw.message.MFW_PacketHandler;
 import mfw.proxy.IProxy;
+import mfw.sound.SoundManager;
 import mfw.tileEntity.TileEntityChunkLoader;
 import mfw.tileEntity.TileEntityFerrisBasketConstructor;
 import mfw.tileEntity.TileEntityFerrisConstructor;
@@ -65,7 +66,7 @@ import net.minecraftforge.common.ForgeChunkManager;
 @TransformerExclusions
 public class MFW_Core {
 	public static final String MODID = "mfw";
-	public static final String VERSION = "1.0";
+	public static final String VERSION = "1.99beta3";
 
 	
 	//proxy////////////////////////////////////////
@@ -118,6 +119,7 @@ public class MFW_Core {
 	{
 		MFW_Logger.info("Start preInit");
 
+		SoundManager.JsonUpdate();
 		MFW_checker.check();
 //		if(!MFW_checker.is())return;
 		
