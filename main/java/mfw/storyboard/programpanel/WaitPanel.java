@@ -13,6 +13,7 @@ public class WaitPanel implements IProgramPanel {
 	private static String[] modes = {
 			"RsInput",
 			"Notify",
+			"NonStop",
 	};
 	
 	private static DataPack[] datapacks = {
@@ -82,7 +83,11 @@ public class WaitPanel implements IProgramPanel {
 	@Override
 	public void start()
 	{
-		canDispose = false;
+		if(modeindex == 2) // nonstop
+		{
+			canDispose = true;
+		}
+		else canDispose = false;
 	}
 	
 	

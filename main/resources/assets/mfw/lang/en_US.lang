@@ -29,6 +29,7 @@ gui.core.text.modename0=Normal Rotation
 gui.core.text.modename1=Pendulum Motion
 gui.core.text.modename2=Round Trip
 gui.core.text.modename3=Step Rotation
+gui.core.text.modename4=Story Board
 gui.core.text.modename100=Synchronism Mode
 
 gui.core.switch.rsmode=Change RS Mode
@@ -39,3 +40,13 @@ gui.core.switch.rsmode3=Ratio Positive
 gui.core.switch.rsmode4=Ratio Negative
 
 gui.core.switch.syncmode=Sync Mode
+
+gui.core.isEnableStoryBoard=StoryBoard Proc
+gui.core.isEnableSinConvert=Pendulum Conv
+
+gui.core.isEnableSyncTarget=Sync Target
+gui.core.SyncTarget.rot=Rotation
+gui.core.SyncTarget.speed=Speed
+
+gui.core.Sync.ParentUnregistered=Unregistered
+gui.core.Sync.Parentregistered=Registered

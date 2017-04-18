@@ -41,3 +41,13 @@ gui.core.switch.rsmode3=倍率補正
 gui.core.switch.rsmode4=逆倍率補正
 
 gui.core.switch.syncmode=同期モード切替
+
+gui.core.isEnableStoryBoard=ストーリーボード処理
+gui.core.isEnableSinConvert=振り子運動処理
+
+gui.core.isEnableSyncTarget=同期対象
+gui.core.SyncTarget.rot=角度
+gui.core.SyncTarget.speed=速さ
+
+gui.core.Sync.ParentUnregistered=未登録
+gui.core.Sync.Parentregistered=登録済

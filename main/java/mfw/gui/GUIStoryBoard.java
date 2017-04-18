@@ -5,8 +5,6 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -159,14 +157,14 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
         //コードこぴぺ
         addButton(48, 18, -0, height-18, "Paste->", buttonGroup.Paste);
         addButton(48, 18, 235, height-18, "->Copy", buttonGroup.Copy);
-        addButton(39, 18, 285, height-18, "Apply▲", buttonGroup.Apply);
+        addButton(39, 14, 185, height-33, "Apply▲", buttonGroup.Apply);
         
         //追加したいパネルの種類を選ぶやつ
         idOffsetAddPanel = buttonList.size();
         for(int apiidx = 0; apiidx < IProgramPanel.Mode.values().length; ++apiidx)
     	{
         	String desc = IProgramPanel.Mode.values()[apiidx].name();
-        	if(!desc.equals("loopend"))addButton(40, 15, -15, 50+(apiidx)*20, desc, buttonGroup.AddPanel);
+        	if(!desc.equals("loopend"))addButton(50, 15, -17, 50+(apiidx)*20, desc, buttonGroup.AddPanel);
     	}
         
         //各種パネル設定用ボタン
@@ -225,6 +223,11 @@ public class GUIStoryBoard extends GuiContainer implements INotifiedHandler {
 		
 		int nowidx = PanelButtonList.indexOf(nowTargetPanelB);
 		if(nowTargetPanelB==null)nowidx = PanelButtonList.size()-1;
+		if(nowidx == -1 && PanelButtonList.size() > 0)
+		{
+			MFW_Logger.debugInfo("やばい");
+			return null;
+		}
 		this.PanelButtonList.add(nowidx+1, btn);
 		
 		ButtonMap.put(id, buttonGroup.Panel);

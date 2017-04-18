@@ -37,7 +37,7 @@ public class FerrisFrameSound extends MovingSound {
 			{
 				this.volume = (MathHelper.clamp_float(f, 0.0F, 1.0F));
 				this.field_147663_c = 0.86f + Math.min(v*0.1f, 5.5f);
-				MFW_Logger.debugInfo(field_147663_c+" : "+ v);
+//				MFW_Logger.debugInfo(field_147663_c+" : "+ v);
 			} 
 			else 
 			{

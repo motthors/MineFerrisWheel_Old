@@ -9,6 +9,7 @@ import org.lwjgl.opengl.GL11;
 
 import cpw.mods.fml.client.config.GuiButtonExt;
 import mfw._core.MFW_Core;
+import mfw._core.MFW_Logger;
 import mfw.gui.container.ContainerFerrisCore;
 import mfw.manager.ManagerSyncRotationTileSave;
 import mfw.message.MFW_PacketHandler;
@@ -110,11 +111,13 @@ public class GUIFerrisCore extends GuiContainer {
 		LcokButtonID = buttonid;
 		addButton1(40, 13, -17, -15, tile.getRootParent().isLock?"lock":"unlock", MessageFerrisMisc.GUICoreLock);
 		
+		
 		//normal
 		groupid = 0; //main param  tile.rotFlag_Normal;
 		addButton6(153, 4, "Accel", MessageFerrisMisc.GUICoreAddSpeed);
 		addButton1(48, 10, 198, 5, "Reverse", MessageFerrisMisc.GUICoreTurn);
 //		rsRotateButtonID = buttonid;
+		
 		
 		// stop
 		groupid = 1; // stop toggle
@@ -123,17 +126,25 @@ public class GUIFerrisCore extends GuiContainer {
 		addButton1(48, 10, 198, 18, stopbuttonname, MessageFerrisMisc.GUICoreStop);
 		
 		groupid = 2; // change mode
-		addButton1(100, 13, -20, 164, StatCollector.translateToLocal("gui.core.switch.changemode"), MessageFerrisMisc.GUICoreModeChange);	
+		addButton1(100, 13, -20, 164, 
+				StatCollector.translateToLocal("gui.core.isEnableStoryBoard"),
+				MessageFerrisMisc.GUICoreStoryBoardChange);
+		addButton1(95, 13, 130, 164, 
+				StatCollector.translateToLocal("gui.core.isEnableSinConvert"),
+				MessageFerrisMisc.GUICoreSinConvertChange);
+		
 		
 		groupid = 3; // change sync mode
-		addButton1(70, 13, 248, 144, StatCollector.translateToLocal("gui.core.switch.syncmode"), MessageFerrisMisc.GUICoreSyncMode);	
+		addButton1(70, 13, 248, 146, StatCollector.translateToLocal("gui.core.switch.syncmode"), MessageFerrisMisc.GUICoreSyncMode);	
 		
 		groupid = 4; //sync param  tile.rotFlag_Sync; 
 //     	   offsety += 1000;
+		addButton1(38, 10, 248, 107, "register", MessageFerrisMisc.GUICoreSyncRegistParent);
+		addButton1(38, 10, 248, 134, "clear", MessageFerrisMisc.GUICoreSyncClear);		
+		addButton1(70, 13, 248, 173, 
+				StatCollector.translateToLocal("gui.core.isEnableSyncTarget"),
+				MessageFerrisMisc.GUICoreSyncTargetChange);
 		
-		addButton1(38, 10, 248, 109, "regist", MessageFerrisMisc.GUICoreSyncRegistParent);
-		addButton1(38, 10, 248, 124, "clear", MessageFerrisMisc.GUICoreSyncClear);		
-
 		groupid = 5;
 		addButton6(153, 26, "Misc 1", MessageFerrisMisc.GUICoreRotMisc1);
 		addButton6(153, 38, "Misc 2", MessageFerrisMisc.GUICoreRotMisc2);
@@ -142,14 +153,14 @@ public class GUIFerrisCore extends GuiContainer {
 		addButton4(119, 15, "Resist", MessageFerrisMisc.GUICoreResist);
 		
 		groupid = 7;
-		addButton1(100, 30, 118, 15, "Open StoryBoard", MessageFerrisMisc.GUIOpenStoryBoard);
+		addButton1(70, 30, -90, 120, "StoryBoard", MessageFerrisMisc.GUIOpenStoryBoard);
 		
 		groupid = 8;
 		addButton1(100, 13, -20, 178, StatCollector.translateToLocal("gui.core.switch.rsmode"), MessageFerrisMisc.GUICoreRSFlagRotate);
 
 		//postinit
 		setButtonPosFromNowTileState();
-		stringRotMode = StatCollector.translateToLocal("gui.core.text.modename"+tile.rotFlag);
+		//stringRotMode = StatCollector.translateToLocal("gui.core.text.modename"+tile.rotFlag);
 		stringRSMode = tile.getSRTitleStringForGUI();
 		
 	}	
@@ -224,20 +235,7 @@ public class GUIFerrisCore extends GuiContainer {
     	listBPos.add(new bpos(posx+offsetx, posy+offsety));
     	listBPos.add(new bpos(posx+offsetx, posy+offsety));
     }
-	
-	
-	public byte covertGUIFlagFromTileState()
-	{
-		return convertGUIFlagFromState(tile.rotFlag, tile.stopFlag);
-	}
-	public byte convertGUIFlagFromState(int rotFlag, boolean stopFlag)
-	{
-		if(stopFlag)return GUIModeFlagEnum_Stop;
-		if(rotFlag == TileEntityFerrisWheel.rotFlag_Sync)return GUIModeFlagEnum_Sync;
-		if(rotFlag==0)return GUIModeFlagEnum_Normal;
-		if(rotFlag==TileEntityFerrisWheel.rotFlag_StoryBoard)return GUIModeFlagEnum_StoryBoard;
-		return GUIModeFlagEnum_ModeRotate;
-	}
+
 	public void setButtonPosFromEnumID(byte GUIModeFlag)
 	{
 		@SuppressWarnings("unchecked")
@@ -245,25 +243,25 @@ public class GUIFerrisCore extends GuiContainer {
     	for(GuiButton b : _buttonlist)
     	{
         	if(MapButtonidToGroup.get(b.id) == -1)continue;
-        	boolean isDispButton = flagManager(MapButtonidToGroup.get(b.id), covertGUIFlagFromTileState());
+        	boolean isDispButton = flagManager(MapButtonidToGroup.get(b.id));
     		if(isDispButton) b.yPosition = listBPos.get(b.id).y;
         	else b.yPosition = -1000;
     	}
 	}
     public void setButtonPosFromNowTileState()
     {
-    	setButtonPosFromGUIModeFlagEnum(covertGUIFlagFromTileState());
+    	setButtonPosFromGUIModeFlagEnum();
     	//ついで　Change Name
-    	ChangeNames(tile.rotFlag, covertGUIFlagFromTileState());
+    	//ChangeNames(tile.rotFlag, covertGUIFlagFromTileState());
     }
-    public void setButtonPosFromGUIModeFlagEnum(byte GUIModeFlag)
+    public void setButtonPosFromGUIModeFlagEnum()
     {
     	@SuppressWarnings("unchecked")
 		List<GuiButton> _buttonlist = buttonList;
     	for(GuiButton b : _buttonlist)
     	{
         	if(MapButtonidToGroup.get(b.id) == -1)continue;
-    		if(flagManager(MapButtonidToGroup.get(b.id), GUIModeFlag)) b.yPosition = listBPos.get(b.id).y;
+    		if(flagManager(MapButtonidToGroup.get(b.id))) b.yPosition = listBPos.get(b.id).y;
         	else b.yPosition = -1000;
   		
     		//ボタンチェンジしたらStopRestart設定する 今のフラグがStopならば次は必ずStopFlagのアレをオフに
@@ -276,36 +274,36 @@ public class GUIFerrisCore extends GuiContainer {
     public void ChangeButton_StopFlag()
     {
     	byte flag = tile.stopFlag ? GUIModeFlagEnum_Normal : GUIModeFlagEnum_Stop;
-    	setButtonPosFromGUIModeFlagEnum(flag);
-    	ChangeNames(tile.rotFlag, flag);
+    	setButtonPosFromGUIModeFlagEnum();
+    	//ChangeNames(tile.rotFlag, flag);
     }
     // ChangeModeボタンが押されるとやってくる
-    public void ChangeButton_ChangeMode()
-    {
-    	if(tile.rotFlag ==  TileEntityFerrisWheel.rotFlag_Sync)return; // こないはずではある　一応
-    	byte flag;
-    	switch((tile.rotFlag + 1) % TileEntityFerrisWheel.rotFlag_End)
-    	{
-    	case TileEntityFerrisWheel.rotFlag_Normal : flag = GUIModeFlagEnum_Normal; break;
-    	case TileEntityFerrisWheel.rotFlag_StoryBoard : flag = GUIModeFlagEnum_StoryBoard; break;
-    	default : flag = GUIModeFlagEnum_ModeRotate;
-    	}
-    	setButtonPosFromGUIModeFlagEnum(flag);
-    	ChangeNames(tile.rotFlag+1, flag);
-    	stringRotMode = StatCollector.translateToLocal("gui.core.text.modename"+(tile.rotFlag+1)%(TileEntityFerrisWheel.rotFlag_End));
-    }
-    public void ChangeButton_ChangeSyncMode()
-    {
-    	byte flag = tile.rotFlag == TileEntityFerrisWheel.rotFlag_Normal ? GUIModeFlagEnum_Sync : GUIModeFlagEnum_Normal;
-    	setButtonPosFromGUIModeFlagEnum(flag);
-    	ChangeNames(tile.rotFlag, flag);
-    }
+//    public void ChangeButton_ChangeMode()
+//    {
+//    	if(tile.rotFlag ==  TileEntityFerrisWheel.rotFlag_Sync)return; // こないはずではある　一応
+//    	byte flag;
+//    	switch((tile.rotFlag + 1) % TileEntityFerrisWheel.rotFlag_End)
+//    	{
+//    	case TileEntityFerrisWheel.rotFlag_Normal : flag = GUIModeFlagEnum_Normal; break;
+//    	case TileEntityFerrisWheel.rotFlag_StoryBoard : flag = GUIModeFlagEnum_StoryBoard; break;
+//    	default : flag = GUIModeFlagEnum_ModeRotate;
+//    	}
+//    	setButtonPosFromGUIModeFlagEnum(flag);
+//    	ChangeNames(tile.rotFlag+1, flag);
+//    	stringRotMode = StatCollector.translateToLocal("gui.core.text.modename"+(tile.rotFlag+1)%(TileEntityFerrisWheel.rotFlag_End));
+//    }
+//    public void ChangeButton_ChangeSyncMode()
+//    {
+//    	byte flag = !tile.isEnableSyncRot ? GUIModeFlagEnum_Sync : GUIModeFlagEnum_Normal;
+//    	setButtonPosFromGUIModeFlagEnum(flag);
+//    	//ChangeNames(flag);
+//    }
     private final byte GUIModeFlagEnum_Normal= 0;
     private final byte GUIModeFlagEnum_Stop = 1;
     private final byte GUIModeFlagEnum_ModeRotate = 2;
     private final byte GUIModeFlagEnum_Sync = 3;
     private final byte GUIModeFlagEnum_StoryBoard = 4;
-    private boolean flagManager(int groupid, byte enumflag)
+    private boolean flagManager(int groupid)
     {
     	if(groupid == -1) return true;
     	
@@ -317,25 +315,22 @@ public class GUIFerrisCore extends GuiContainer {
 //    	groupid = 5; // for rotMisc, only ModeRotate
 //    	groupid = 6; // only for Resist
 //    	groupid = 7; // only for storyboard
+    	
+    	int enumflag = 0;
+    	if(tile.stopFlag)enumflag = GUIModeFlagEnum_Stop;
+    	else if(tile.isEnableSyncRot)enumflag = GUIModeFlagEnum_Sync;
+    	
     	boolean T = true;
     	boolean F = false;
-//    	boolean table2[][]
-//    			{
-//    				{T, F, T, F	},
-//    				{T, T, T, F },
-//    				{T, T, T, F },
-//    				{T, F, F, T },
-//    				{F, F, F, T	},
-//    				{F, F, T, T	},
-//    				{T, F, F, F	},
-//    			};
+    	boolean S = tile.isEnableStoryBoard;
+    	boolean C = tile.isEnableSyncRot;
     	boolean table[][] = //[enum][groupid]
 			{
-				{T, T, T, T, F, F, T, F, T},
-				{F, T, T, F, F, F, F, F, F},
-				{T, T, T, F, F, T, T, F, T},
-				{F, F, F, T, T, T ,F, F, F},
-				{F, F, T, F, F, F ,F, T, T},
+				{T, T, !C, T, F, T, T, S, T},
+				{F, T, !C, F, F, F, F, S, F},
+				{T, T, !C, F, F, T, T, S, T},
+				{F, F, !C, T, T, T ,F, F, T},
+				{F, F, !C, F, F, F ,F, S, T},
 			};
     	return table[enumflag][groupid];
     }
@@ -354,36 +349,36 @@ public class GUIFerrisCore extends GuiContainer {
 //		tile.selectedTileNull();
 	}
     
-    String[] names = new String[]{"Accel","Speed","Misc1","Misc2","Weight"};
-    private void ChangeNames(int rotFlag, int enumflag)
-    {
-//    	  private final byte GUIModeFlagEnum_Normal= 0;
-//        private final byte GUIModeFlagEnum_Stop = 1;
-//        private final byte GUIModeFlagEnum_ModeRotate = 2;
-//        private final byte GUIModeFlagEnum_Sync = 3;
-    	switch(enumflag)
-    	{
-    	default :
-    	case 0 : names = new String[]{"Accel","Speed","","","Weight"}; break;
-    	case 1 : names = new String[]{"","","","",""}; break;
-    	case 3 : names = new String[]{"","Speed","Amp","Phase",""}; break;
-    	case 2 : 
-    		switch((rotFlag)%TileEntityFerrisWheel.rotFlag_End)
-    		{
-    		case TileEntityFerrisWheel.rotFlag_ComeAndGo :
-    			names = new String[]{"Accel","Speed","ang1","ang2",""}; break;
-    		case TileEntityFerrisWheel.rotFlag_Move_RsOnToggle :
-    			names = new String[]{"Accel","Speed","Value","(none)",""}; break;
-    		default : names = new String[]{"Accel","Speed","Amp","Phase","Weight"}; break;
-    		}
-    		break;
-    	case GUIModeFlagEnum_StoryBoard :
-    		names = new String[]{"", "", "", "", "",}; break;
-    	}
-    }
+    String[] names = new String[]{"Accel","Speed","Amp","Phase","Weight"};
+//    private void ChangeNames(int rotFlag, int enumflag)
+//    {
+////    	  private final byte GUIModeFlagEnum_Normal= 0;
+////        private final byte GUIModeFlagEnum_Stop = 1;
+////        private final byte GUIModeFlagEnum_ModeRotate = 2;
+////        private final byte GUIModeFlagEnum_Sync = 3;
+//    	switch(enumflag)
+//    	{
+//    	default :
+//    	case 0 : names = new String[]{"Accel","Speed","","","Weight"}; break;
+//    	case 1 : names = new String[]{"","","","",""}; break;
+//    	case 3 : names = new String[]{"","Speed","Amp","Phase",""}; break;
+//    	case 2 : 
+//    		switch((rotFlag)%TileEntityFerrisWheel.rotFlag_End)
+//    		{
+//    		case TileEntityFerrisWheel.rotFlag_ComeAndGo :
+//    			names = new String[]{"Accel","Speed","ang1","ang2",""}; break;
+//    		case TileEntityFerrisWheel.rotFlag_Move_RsOnToggle :
+//    			names = new String[]{"Accel","Speed","Value","(none)",""}; break;
+//    		default : names = new String[]{"Accel","Speed","Amp","Phase","Weight"}; break;
+//    		}
+//    		break;
+//    	case GUIModeFlagEnum_StoryBoard :
+//    		names = new String[]{"", "", "", "", "",}; break;
+//    	}
+//    }
     
 	/*GUIの文字等の描画処理*/
-    String stringRotMode;
+    //String stringRotMode;
     String stringRSMode;
     @Override
     protected void drawGuiContainerForegroundLayer(int x, int y)
@@ -395,6 +390,7 @@ public class GUIFerrisCore extends GuiContainer {
 //        {
 //        	this.fontRendererObj.drawString(g.name,g.x,g.y,0x404040);
 //        }
+        
         this.fontRendererObj.drawString(names[0],100,6,0x404040);
         this.fontRendererObj.drawString(names[4],100,17,0x404040);
         this.fontRendererObj.drawString(names[2],100,28,0x404040);
@@ -402,7 +398,9 @@ public class GUIFerrisCore extends GuiContainer {
         this.fontRendererObj.drawString("Size",  100,52,0x404040);
         this.fontRendererObj.drawString("Rot1",  100,63,0x404040);
         this.fontRendererObj.drawString("Rot2",  100,73,0x404040);
-         
+
+        //drawString(this.fontRendererObj, "pAngle"+" :"+String.format("% 4.2f",tile.rotation.getPrev()), 270, -17, 0xffffff);
+        drawString(this.fontRendererObj, "Angle"+" :"+String.format("% 4.2f",tile.rotation.get()), 270, -7, 0xffffff);
         drawString(this.fontRendererObj, names[0]+" :"+String.format("% 4.2f",tile.rotAccel), 270, 3, 0xffffff);
         drawString(this.fontRendererObj, names[1]+" :"+String.format("% 4.2f",tile.rotSpeed), 270, 13, 0xffffff);
         drawString(this.fontRendererObj, names[2]+" :"+String.format("% 4.1f",tile.rotMiscFloat1.get()), 270, 23, 0xffffff);
@@ -417,11 +415,26 @@ public class GUIFerrisCore extends GuiContainer {
 //        drawString(this.fontRendererObj, ERC_BlockRailManager.clickedTileForGUI.SpecialGUIDrawString(), 42, 199, 0xffffff);
         
         //debug
-        drawString(this.fontRendererObj, stringRotMode, 105, 167, 0xffffff);
         drawString(this.fontRendererObj, stringRSMode, 105, 181, 0xffffff);
-        drawString(this.fontRendererObj, String.format("Input RS Power : %1.2f",tile.getRSPower()), 200, 181, 0xffffff);
+        drawRightedString(this.fontRendererObj, String.format("Input RS Power : %1.2f",tile.getRSPower()), 260, -10, 0xffffff);
     
         drawRightedString(this.fontRendererObj, SoundManager.sounds.get(tile.GetSoundIndex()), -0, 79, 0xffffff);
+
+        drawString(this.fontRendererObj, tile.isEnableSyncRot ? "ON" : "OFF", 285, 160, 0xffffff);
+        drawString(this.fontRendererObj, tile.isEnableStoryBoard ? "ON" : "OFF", 105, 167, 0xffffff);
+        drawString(this.fontRendererObj, tile.isEnableSinConvert ? "ON" : "OFF", 250, 167, 0xffffff);
+
+        if(tile.isEnableSyncRot)
+        {
+        	drawString(this.fontRendererObj, 
+            		tile.isSyncTargetSpeed ? StatCollector.translateToLocal("gui.core.SyncTarget.speed") 
+            								: StatCollector.translateToLocal("gui.core.SyncTarget.rot"),
+            				285, 187, 0xffffff);
+	        drawString(this.fontRendererObj, 
+	        		tile.isRegisteredSyncParent() ? StatCollector.translateToLocal("gui.core.Sync.Parentregistered") 
+	        								: StatCollector.translateToLocal("gui.core.Sync.ParentUnregistered"),
+	        				280, 121, 0xffffff);
+        }
     }
  
     public void drawRightedString(FontRenderer renderer, String text, int x, int y, int color)
@@ -548,16 +561,28 @@ public class GUIFerrisCore extends GuiContainer {
 		
 		// ﾒﾆｭｰ遷移用３つ
 		case MessageFerrisMisc.GUICoreStop :
-			ChangeButton_StopFlag();
+			tile.toggleStopFlag();
+			setButtonPosFromGUIModeFlagEnum();
 			bt = ((GuiButtonExt)buttonList.get(stopButtonID));
 			if(tile.stopFlag)bt.displayString = "Stop";
 			else bt.displayString = "Restart";
 			break;
-		case MessageFerrisMisc.GUICoreModeChange :
-			ChangeButton_ChangeMode();
+//		case MessageFerrisMisc.GUICoreModeChange :
+//			ChangeButton_ChangeMode();
+//			break;
+		case MessageFerrisMisc.GUICoreStoryBoardChange:
+			tile.toggleStoryBoardFlag();
+			setButtonPosFromGUIModeFlagEnum();
+			break;
+		case MessageFerrisMisc.GUICoreSinConvertChange:
+			tile.toggleSinConvertFlag();
+			break;
+		case MessageFerrisMisc.GUICoreSyncTargetChange:
+			tile.toggleSyncTarget();
 			break;
 		case MessageFerrisMisc.GUICoreSyncMode :
-			ChangeButton_ChangeSyncMode();
+			tile.toggleSyncFlag();
+			setButtonPosFromGUIModeFlagEnum();
 			break;
 			
 		case MessageFerrisMisc.GUICoreRSFlagRotate :
@@ -579,6 +604,10 @@ public class GUIFerrisCore extends GuiContainer {
 			idx = tile.GetSoundIndex() - 1;
 			if(idx<0)idx = SoundManager.sounds.size()-1;
 			data = idx;
+			break;
+			
+		case MessageFerrisMisc.GUIStoryBoardStop :
+			tile.getStoryBoardManager().clear();
 			break;
 		
 		}

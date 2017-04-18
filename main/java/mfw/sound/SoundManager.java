@@ -11,21 +11,27 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import cpw.mods.fml.common.ObfuscationReflectionHelper;
 import mfw._core.MFW_Core;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.SoundHandler;
 import net.minecraft.client.audio.SoundList;
 import net.minecraft.client.audio.SoundListSerializer;
+import net.minecraft.client.resources.IResourcePack;
+import net.minecraft.client.resources.SimpleReloadableResourceManager;
 import net.minecraft.util.ResourceLocation;
 
 public class SoundManager {
 
-	
+	public static final String soundDomain = MFW_Core.MODID + "sound";
+	public static ExternalResourceLoader soundloader;
 	public static ArrayList<String> sounds = new ArrayList<String>();
 	
 	public static void JsonUpdate()
@@ -57,20 +63,23 @@ public class SoundManager {
 							+"\"category\":\"master\","
 							+"\"sounds\":[\"%s\"]\n}";
 		
-		newjson += String.format(format, "complete", "items/complete");
+//		newjson += String.format(format, "complete", "items/complete");
 		
 		
 		String[] filelist = folder.list();
-		for(String filename : filelist)
+		for(int i = 0; i< filelist.length; ++i)
 		{
+			String filename = filelist[i];
 			if(filename.contains(".ogg"))
 			{
 				filename = filename.replace(".ogg", "");
-				newjson += ",\n" + String.format(format, filename, "../../../../../MFWSounds/" + filename);
+				newjson += "\n" + String.format(format, filename, "/MFWSounds/" + filename) + ",";
 				sounds.add(filename);
 			}
 		}
 		
+		newjson += "END";
+		newjson = newjson.replaceAll(",END", "");
 		newjson += "\n}";
 		
 		PrintWriter pw = null;
@@ -97,16 +106,25 @@ public class SoundManager {
     public static void AddExternalSoundLoad(SoundHandler soundhandler)
 	{
 		try {
+			soundloader = new ExternalResourceLoader(soundDomain, Minecraft.getMinecraft().mcDataDir.getPath());
+//			List<IResourcePack> defaultResourcePacks = ObfuscationReflectionHelper.getPrivateValue(Minecraft.class, Minecraft.getMinecraft(), "defaultResourcePacks", "field_110449_ao");
+//	        if(!defaultResourcePacks.contains(soundloader))defaultResourcePacks.add(soundloader);
+			
+	        SimpleReloadableResourceManager resourcemanager = ObfuscationReflectionHelper.getPrivateValue(Minecraft.class, Minecraft.getMinecraft(), "mcResourceManager", "field_110451_am");
+	        resourcemanager.reloadResourcePack(soundloader);
+	        
 			Map map = (Map)gson.fromJson(new InputStreamReader(new FileInputStream("./MFWSounds/sounds.json")), paramtype);
             Iterator iterator2 = map.entrySet().iterator();
-
+			
+	        
             while (iterator2.hasNext())
             {
                 Entry entry = (Entry)iterator2.next();
 //                this.loadSoundResource(new ResourceLocation(s, (String)entry.getKey()), (SoundList)entry.getValue());
-                Method m = soundhandler.getClass().getDeclaredMethod("loadSoundResource", ResourceLocation.class, SoundList.class);
-    			m.setAccessible(true);
-    			m.invoke(soundhandler, new ResourceLocation(MFW_Core.MODID, (String)entry.getKey()), (SoundList)entry.getValue());
+//                Method m = soundhandler.getClass().getDeclaredMethod("loadSoundResource", ResourceLocation.class, SoundList.class);
+                Method m = soundhandler.getClass().getDeclaredMethod("func_147693_a", ResourceLocation.class, SoundList.class);
+                m.setAccessible(true);
+    			m.invoke(soundhandler, new ResourceLocation(soundDomain, (String)entry.getKey()), (SoundList)entry.getValue());
             }
 			
 		} catch (Exception e) {

@@ -20,7 +20,7 @@ public class MFW_Logger {
 	}
 	
 	public static void debugInfo(String msg) {
-		info(msg);
+		//info(msg);
 	}
  
 }

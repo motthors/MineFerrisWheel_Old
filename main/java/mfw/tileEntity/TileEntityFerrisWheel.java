@@ -46,7 +46,7 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	public float rotSpeed = 0;
 	public float rotAccel = 0;
 	public float rotResist = 0.1f;
-	private float speedTemp;
+	public float speedTemp;
 	public InterpolationTick rotMiscFloat1 = new InterpolationTick(1f);
 	public InterpolationTick rotMiscFloat2 = new InterpolationTick(0);
 	public InterpolationTick wheelSize = new InterpolationTick(1.0f);
@@ -54,15 +54,20 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	public int   side;
 	public int 	 meta;
 
-	public byte rotFlag = 0;
+	//public byte rotFlag = 0;
 	//rotflag enum
-	public static final byte rotFlag_Normal = 0;
-	public static final byte rotFlag_Sin = 1;
-	public static final byte rotFlag_ComeAndGo = 2;
-	public static final byte rotFlag_Move_RsOnToggle = 3;
-	public static final byte rotFlag_StoryBoard = 4;
-	public static final byte rotFlag_End = 5; //番兵
-	public static final byte rotFlag_Sync = 100;
+//	public static final byte rotFlag_Normal = 0;
+//	public static final byte rotFlag_Sin = 1;
+//	public static final byte rotFlag_ComeAndGo = 2;
+//	public static final byte rotFlag_Move_RsOnToggle = 3;
+//	public static final byte rotFlag_StoryBoard = 4;
+//	public static final byte rotFlag_End = 5; //番兵
+//	public static final byte rotFlag_Sync = 100;
+	public boolean isEnableSinConvert = false;
+	public boolean isEnableStoryBoard = false;
+	//同期モードは上2つのフラグは無効になる
+	public boolean isEnableSyncRot = false;
+	public boolean isSyncTargetSpeed = false;
 	
 	public byte rsFlag = 0;
 	//rsflag enum
@@ -123,17 +128,17 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	public FerrisFrameSound sound;
 	public void SetSoundIndex(int idx){
 		if(soundidx != idx){
-			if(idx >= SoundManager.sounds.size())idx = 0;
 			soundidx = idx;
 			if(sound!=null)sound.Invalid();
 			if(idx==0)return;
-			String domain = SoundManager.getSoundDomain(idx);
 			if(FMLCommonHandler.instance().getEffectiveSide().isClient())
 			{
-				FerrisFrameSound sound = new FerrisFrameSound(this, MFW_Core.proxy.getClientPlayer(), "mfw:"+domain);
+				String domain = SoundManager.getSoundDomain(idx);
+				if(idx >= SoundManager.sounds.size())soundidx = 0;
+				FerrisFrameSound sound = new FerrisFrameSound(this, MFW_Core.proxy.getClientPlayer(), SoundManager.soundDomain+":"+domain);
 				this.sound = sound;
 				MFW_Core.proxy.PlaySound(sound);
-				MFW_Logger.debugInfo("sound register "+domain);
+//				MFW_Logger.debugInfo("sound register "+domain);
 			}
 		}
 	}
@@ -524,12 +529,22 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	{
 		stopFlag = !stopFlag;
 	}
-	// StopとSync以外のrotFlagをローテーションする関数　ただしStopからrotFlagのNormalの次に移っても良い
-	public void changeRotFlag()
+	
+	public void toggleSinConvertFlag()
 	{
-		rotFlag++;
-		if(rotFlag >= rotFlag_End) rotFlag = 0;
-		//モード変えたら値リセット
+		isEnableSinConvert = !isEnableSinConvert;
+	}
+	public void toggleStoryBoardFlag()
+	{
+		isEnableStoryBoard = !isEnableStoryBoard;
+	}
+	public void toggleSyncTarget()
+	{
+		isSyncTargetSpeed = !isSyncTargetSpeed;
+	}
+	
+	public void reset()
+	{
 		stopFlag = false;
 		rotAccel = 0;
 		rotSpeed = 0;
@@ -540,17 +555,9 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 		speedTemp = 0;
 	}
 	// SyncとNormalを切り替えるための関数
-	public void changeRotFlag_Sync()
+	public void toggleSyncFlag()
 	{
-		if(rotFlag == rotFlag_Normal) rotFlag = rotFlag_Sync;
-		else if(rotFlag == rotFlag_Sync) rotFlag = rotFlag_Normal;
-	}
-	public void changeSyncMode()
-	{
-		//　通常回転モードと同期モード以外ならば操作しない　ボタンもないはずではある
-		if(rotFlag > rotFlag_Normal && rotFlag < rotFlag_End)return;
-		if(rotFlag==rotFlag_Normal)rotFlag = rotFlag_Sync;
-		else rotFlag = rotFlag_Normal;
+		isEnableSyncRot = !isEnableSyncRot;
 	}
 	
 	public void setSize(int flag)
@@ -691,7 +698,7 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	public void setSyncParent(TileEntityFerrisWheel parent)
 	{
 		if(parent == null)return;
-		rotFlag = rotFlag_Sync;
+		isEnableSyncRot = true;
 		parentSyncTile = parent;
 		parentTileTreeIndex = getTreeIndexFromTile(parent);
 		parentsyncX = parentSyncTile.xCoord;
@@ -702,7 +709,10 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	{
 		parentSyncTile = null;
 		parentTileTreeIndex = -1;
-		rotFlag = rotFlag_Normal;
+		parentsyncX = -1;
+		parentsyncY = -1;
+		parentsyncZ = -1;
+		//isEnableSyncRot = false;
 	}
 	public void setSyncChild(TileEntityFerrisWheel child)
 	{
@@ -711,6 +721,11 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	public void clearOwnFromChildren()
 	{
 		for(TileEntityFerrisWheel tile : childSyncTileList)tile.clearSyncParent();
+	}
+	
+	public boolean isRegisteredSyncParent()
+	{
+		return null != parentSyncTile;
 	}
 	
 	
@@ -731,7 +746,8 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 			}
 			return;
 		}
-		_updateEntity();
+		
+		if(isEnableSyncRot==false) _updateEntity();
 	}
 	public void _updateEntity()
 	{
@@ -786,83 +802,104 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 	
 	private void calcRotaion()
 	{
-		
-		switch(rotFlag)
+		if(isEnableSyncRot)
 		{
-		case rotFlag_StoryBoard :
-			if(getRSTrigger() == 1)storyboardManager.OnRSEnable();
-			storyboardManager.RunAnimation();
-			//no break
-		case rotFlag_Sin :
-		case rotFlag_Normal : 
-			rotSpeed *= (1f - rotResist);
-			if(!stopFlag)rotSpeed += rotAccel*rotResist*getSpeedRatioFromRSFlag();
-
-//			break;
-			
-			if(rotFlag==rotFlag_Sin){
-				speedTemp += rotSpeed;
-				if(speedTemp > 180)speedTemp -= 360f;
-				else if(speedTemp < -180)speedTemp += 360f;
-				float sin = (float)Math.sin(Math.toRadians(speedTemp))
-							*rotMiscFloat1.get()*getSpeedRatioFromRSFlag() 
-							+ rotMiscFloat2.get();
-				rotation.set(sin);
+			if(parentSyncTile==null)
+			{
+				//isEnableSyncRot = false;
+				return;
 			}
-			else{
-//				speedTemp = rotSpeed;
+			
+			if(isSyncTargetSpeed)
+			{
+				rotSpeed = (parentSyncTile.rotSpeed*rotMiscFloat1.get()*getSpeedRatioFromRSFlag());
 				rotation.add(rotSpeed);
 				rotation.round();
 			}
-			break;
+			else
+			{
+				rotation.set(parentSyncTile.rotation.get()*rotMiscFloat1.get()*getSpeedRatioFromRSFlag() + rotMiscFloat2.get());
+				rotation.setPrev(parentSyncTile.rotation.getPrev()*rotMiscFloat1.get()*getSpeedRatioFromRSFlag() + rotMiscFloat2.get());
+				rotation.round();
+			}
+			return;
+		}
+
+		if(isEnableStoryBoard)
+		{
+			if(getRSTrigger() == 1)storyboardManager.OnRSEnable();
+			storyboardManager.RunAnimation();
+		}
+		
+		rotSpeed *= (1f - rotResist);
+		if(!stopFlag)rotSpeed += rotAccel*rotResist*getSpeedRatioFromRSFlag();
+
+		
+		if(isEnableSinConvert){
+			speedTemp += rotSpeed;
+			if(speedTemp > 180)speedTemp -= 360f;
+			else if(speedTemp < -180)speedTemp += 360f;
+			float sin = (float)Math.sin(Math.toRadians(speedTemp))
+						*rotMiscFloat1.get()*getSpeedRatioFromRSFlag() 
+						+ rotMiscFloat2.get();
+			rotation.set(sin);
+		}
+		else{
+//				speedTemp = rotSpeed;
+			rotation.add(rotSpeed);
+			rotation.round();
+		}
+		
+		
+//			break;
 //		case rotFlag_Sin : 
 //			rotSpeed += rotAccel*0.07*getSpeedRatioFromRSFlag();
 //			if(rotSpeed>Math.PI)rotSpeed-=2*Math.PI;
 //			else if(rotSpeed<-Math.PI)rotSpeed += 2*Math.PI;
 //			rotation.set((float)Math.sin(rotSpeed)*rotMiscFloat1.get()*getSpeedRatioFromRSFlag() + rotMiscFloat2.get());
 //			break;
-		case rotFlag_ComeAndGo : 
-			if(getRSTrigger() == 1)rotSpeed = 1;
-			if(rotResist > 0){
-				rotation.add(rotSpeed * rotAccel * getSpeedRatioFromRSFlag());
-				if(rotation.get() >= rotMiscFloat1.get()){
-					rotSpeed = 0; 
-					rotResist *= -1; 
-					rotation.set(rotMiscFloat1.get());
-				} 
-			}
-			else{
-				rotation.add(-rotSpeed * rotAccel * getSpeedRatioFromRSFlag());
-				if(rotation.get() <= rotMiscFloat2.get()){
-					rotSpeed = 0; 
-					rotResist *= -1;
-					rotation.set(rotMiscFloat2.get());
-				} 
-			}
-			break;
-		
-			
-		case rotFlag_Move_RsOnToggle :
-			if(getRSTrigger() == 1){
-				rotSpeed = 1;
-				rotResist = rotation.get() + rotMiscFloat1.get();
-				if(rotResist > 180f)
-				{
-					rotResist-=360f;
-					rotation.add(-360f);
-				}
-			}
-			rotation.add(rotSpeed * rotAccel * getSpeedRatioFromRSFlag());
-			if(rotation.get() >= rotResist){
-				rotSpeed = 0; 
-				rotation.set(rotResist);
-			}
-			break;
-		case rotFlag_Sync : 
-			if(parentSyncTile==null)return;
-			rotation.set(parentSyncTile.rotation.get()*rotMiscFloat1.get()*getSpeedRatioFromRSFlag() + rotMiscFloat2.get());
-			break;
-		}
+//		case rotFlag_ComeAndGo : 
+//			if(getRSTrigger() == 1)rotSpeed = 1;
+//			if(rotResist > 0){
+//				rotation.add(rotSpeed * rotAccel * getSpeedRatioFromRSFlag());
+//				if(rotation.get() >= rotMiscFloat1.get()){
+//					rotSpeed = 0; 
+//					rotResist *= -1; 
+//					rotation.set(rotMiscFloat1.get());
+//				} 
+//			}
+//			else{
+//				rotation.add(-rotSpeed * rotAccel * getSpeedRatioFromRSFlag());
+//				if(rotation.get() <= rotMiscFloat2.get()){
+//					rotSpeed = 0; 
+//					rotResist *= -1;
+//					rotation.set(rotMiscFloat2.get());
+//				} 
+//			}
+//			break;
+//		
+//			
+//		case rotFlag_Move_RsOnToggle :
+//			if(getRSTrigger() == 1){
+//				rotSpeed = 1;
+//				rotResist = rotation.get() + rotMiscFloat1.get();
+//				if(rotResist > 180f)
+//				{
+//					rotResist-=360f;
+//					rotation.add(-360f);
+//				}
+//			}
+//			rotation.add(rotSpeed * rotAccel * getSpeedRatioFromRSFlag());
+//			if(rotation.get() >= rotResist){
+//				rotSpeed = 0; 
+//				rotation.set(rotResist);
+//			}
+//			break;
+//		case rotFlag_Sync : 
+//			if(parentSyncTile==null)return;
+//			rotation.set(parentSyncTile.rotation.get()*rotMiscFloat1.get()*getSpeedRatioFromRSFlag() + rotMiscFloat2.get());
+//			break;
+//		}
 	}
 	
 	private float getSpeedRatioFromRSFlag()
@@ -1041,7 +1078,11 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 		rotMiscFloat1.set(nbt.getFloat("rotMiscfloat1"));
 		rotMiscFloat2.set(nbt.getFloat("rotMiscfloat2"));
 		this.meta = nbt.getInteger("meta");
-		rotFlag = nbt.getByte("rotflag");
+//		rotFlag = nbt.getByte("rotflag");
+		isEnableSinConvert = nbt.getBoolean("enablesinconvert");
+		isEnableStoryBoard = nbt.getBoolean("enablestoryboard");/* MFW_Logger.debugInfo("enablesb:"+isEnableStoryBoard+" ."+xCoord+"."+yCoord+"."+zCoord);*/
+		isEnableSyncRot = nbt.getBoolean("enablesyncrot");
+		isSyncTargetSpeed = nbt.getBoolean("synctargetspeed");
 		rsFlag = nbt.getByte("rsflag");
 		stopFlag = nbt.getBoolean("stopflag");
 		rotVar1 = nbt.getFloat("rotVar1");
@@ -1114,7 +1155,11 @@ public class TileEntityFerrisWheel extends TileEntity implements ISidedInventory
 		nbt.setFloat("rotMiscfloat1",rotMiscFloat1.get());
 		nbt.setFloat("rotMiscfloat2",rotMiscFloat2.get());
 		nbt.setInteger("meta", this.meta);
-		nbt.setByte("rotflag", rotFlag);
+//		nbt.setByte("rotflag", rotFlag);
+		nbt.setBoolean("enablesinconvert", isEnableSinConvert);
+		nbt.setBoolean("enablestoryboard", isEnableStoryBoard);
+		nbt.setBoolean("enablesyncrot", isEnableSyncRot);
+		nbt.setBoolean("synctargetspeed", isSyncTargetSpeed);
 		nbt.setByte("rsflag", rsFlag);
 		nbt.setBoolean("stopflag", stopFlag);
 		nbt.setFloat("rotVar1", rotVar1);

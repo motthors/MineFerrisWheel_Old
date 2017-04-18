@@ -107,34 +107,12 @@ public class StoryBoardManager {
 	
 	public void OnRSEnable()
 	{
-		if(runningPanelList.size()==0)
-		{
-			startWaitPanel.RSHandler();
-			if(startWaitPanel.run())
-			{
-				Start();
-			}
-		}
-		else
-		{
-			for(IProgramPanel panel : runningPanelList)panel.RSHandler();
-		}
+		for(IProgramPanel panel : runningPanelList)panel.RSHandler();
 	}
 	
 	public void OnNotify()
 	{
-		if(runningPanelList.size()==0)
-		{
-			startWaitPanel.NotifyHandler();
-			if(startWaitPanel.run())
-			{
-				Start();
-			}
-		}
-		else
-		{
-			for(IProgramPanel panel : runningPanelList)panel.NotifyHandler();
-		}
+		for(IProgramPanel panel : runningPanelList)panel.NotifyHandler();
 	}
 	
 	public void Start()
@@ -148,24 +126,28 @@ public class StoryBoardManager {
 	
 	public void RunAnimation()
 	{
-		if(runningPanelList.size() > 0)
+		if(runningPanelList.size() == 0)
 		{
-			//MFW_Logger.debugInfo("###############StartRun###############..."+runningPanelList.size());
-			for(int i=0; i<runningPanelList.size(); ++i)
+			startWaitPanel.start();
+			nowTargetPanel = startWaitPanel;
+			nowTargetPanelItr = PanelList.iterator();
+			runningPanelList.add(startWaitPanel);
+		}
+		//MFW_Logger.debugInfo("###############StartRun###############..."+runningPanelList.size());
+		for(int i=0; i<runningPanelList.size(); ++i)
+		{
+			IProgramPanel panel = runningPanelList.get(i);
+			boolean isFinished = panel.run();	//MFW_Logger.debugInfo("do "+panel);
+			if(isFinished && panel.equals(nowTargetPanel))
 			{
-				IProgramPanel panel = runningPanelList.get(i);
-				boolean isFinished = panel.run();	//MFW_Logger.debugInfo("do "+panel);
-				if(isFinished && panel.equals(nowTargetPanel))
-				{
-					SetNextPanel();		//MFW_Logger.debugInfo("end "+panel+" and add next ... ... nowtarget="+nowTargetPanel);
-				}
-				if(isFinished)
-				{
-					runningPanelList.remove(panel);	//MFW_Logger.debugInfo("remove "+panel);
-					i--;
-				}
+				SetNextPanel();		//MFW_Logger.debugInfo("end "+panel+" and add next ... ... nowtarget="+nowTargetPanel);
 			}
-		}else startWaitPanel.start(); // reset
+			if(isFinished)
+			{
+				runningPanelList.remove(panel);	//MFW_Logger.debugInfo("remove "+panel);
+				i--;
+			}
+		}
 	}
 	
 	public void stop()

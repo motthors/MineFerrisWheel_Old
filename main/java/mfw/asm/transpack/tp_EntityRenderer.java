@@ -21,7 +21,7 @@ public class tp_EntityRenderer extends TransPack {
 	{
 		MethodName = name;
 		MethodDesc = desc;
-		//FMLRelaunchLog.info("MFWTransformLog : method list up : "+name+desc);
+//		FMLRelaunchLog.info("TransformLog : method list up : "+name+desc);
 
 		/////////////////////////////////////////////////////////////
 		// èëÇ´ä∑Ç¶ëŒèÃÉÅÉ\ÉbÉhñºê›íË
@@ -43,12 +43,15 @@ public class tp_EntityRenderer extends TransPack {
 				@Override
 				public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf)
 			    {
-//					FMLRelaunchLog.info("MFWTransformLog : visitMethodInsn : name'%s.%s%s'", owner, name, desc);
-					boolean flag = false;
-					flag |= TARGET_TRANSFORMED_NAME.equals(mapMethodName(owner, name, desc));
-					flag |= TARGET_Orginal_NAME.equals(mapMethodName(owner, name, desc));
-					if (TARGET_CLASS_NAME.equals(owner) 
-							&& flag 
+//					FMLRelaunchLog.info("MFWTransformLog : visitMethodInsn : name'%s.%s%s'", owner, mapMethodName(owner, name, desc), desc);
+					boolean ownerflag = false;
+					boolean nameflag = false;
+					ownerflag |= TARGET_CLASS_NAME.equals(owner);
+					ownerflag |= "bma".equals(owner);
+					nameflag |= TARGET_TRANSFORMED_NAME.equals(mapMethodName(owner, name, desc));
+					nameflag |= TARGET_Orginal_NAME.equals(mapMethodName(owner, name, desc));
+					if (ownerflag
+							&& nameflag 
 							&& (TARGET_DESC.equals(desc) || (TARGET_DESC_T.equals(desc))))
 					{
 						MethodCount += 1;
@@ -57,14 +60,15 @@ public class tp_EntityRenderer extends TransPack {
 						case 2: 
 						case 3:
 						case 4:
+//							FMLRelaunchLog.info("TransformLog : OK");
 							this.mv.visitMethodInsn(opcode, owner, name, desc, itf);
 //							if(Loader.isModLoaded("shadersmod"))
-							//	this.mv.visitMethodInsn(Opcodes.INVOKESTATIC, "shadersmodcore/client/Shaders", "beginWater", "()V", false);
+								//this.mv.visitMethodInsn(Opcodes.INVOKESTATIC, "shadersmodcore/client/Shaders", "beginWater", "()V", false);
 							this.mv.visitVarInsn(Opcodes.FLOAD, 1);
 							this.mv.visitMethodInsn(Opcodes.INVOKESTATIC, "mfw/asm/renderPass1Hook", "draw", "(F)V", false);
 //							if(Loader.isModLoaded("shadersmod"))
-							//	this.mv.visitMethodInsn(Opcodes.INVOKESTATIC, "shadersmodcore/client/Shaders", "endWater", "()V", false); 
-							FMLRelaunchLog.info("MFWTransformLog : succeed transforming");
+								//this.mv.visitMethodInsn(Opcodes.INVOKESTATIC, "shadersmodcore/client/Shaders", "endWater", "()V", false); 
+							//FMLRelaunchLog.info("MFWTransformLog : succeed transforming");
 							return;
 						}
 					}
@@ -80,12 +84,13 @@ public class tp_EntityRenderer extends TransPack {
 
 				@Override
 				public void visitFieldInsn(int opcode, String owner, String name, String desc) {
-	//				FMLRelaunchLog.info("MFWTransformLog : renderdist : visitFieldInsn : "+name +".."+mapFieldName(owner, name, desc)+desc);
+					//FMLRelaunchLog.info("MFWTransformLog : renderdist : visitFieldInsn : "+name +".."+mapFieldName(owner, name, desc)+desc);
 					boolean flag = false;
 					flag |= "farPlaneDistance".equals(mapFieldName(owner, name, desc));
 					flag |= "field_78530_s".equals(mapFieldName(owner, name, desc));
 					if(flag && opcode == Opcodes.PUTFIELD && MethodCount==0)
 					{
+//						FMLRelaunchLog.info("TransformLog : OK");
 						MethodCount += 1;
 						mv.visitFieldInsn(Opcodes.GETSTATIC, "mfw/_core/MFW_Command", "renderDistRatio", "F");
 						mv.visitInsn(Opcodes.FMUL);

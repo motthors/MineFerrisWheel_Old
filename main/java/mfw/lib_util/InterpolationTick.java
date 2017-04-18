@@ -29,6 +29,11 @@ public class InterpolationTick {
 		now = set;
 	}
 	
+	public void setPrev(float prev)
+	{
+		this.prev = prev;
+	}
+	
 	public void add(float add)
 	{
 		now += add;

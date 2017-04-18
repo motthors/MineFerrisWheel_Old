@@ -13,7 +13,7 @@ import net.minecraft.util.MathHelper;
 public class KeyFramePanel implements IProgramPanel {
 	
 	private static String[] targets = {
-			"Rotation",
+			"Angle",
 			"Accel",
 			//"Weight",
 			"Size",

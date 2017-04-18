@@ -21,14 +21,15 @@ public class tp_SoundHandler extends TransPack {
 	{
 		MethodName = name;
 		MethodDesc = desc;
-		//FMLRelaunchLog.info("MFWTransformLog : method list up : "+name+desc);
+//		FMLRelaunchLog.info("MFWTransformLog : method list up : "+name+desc);
 
 		/////////////////////////////////////////////////////////////
 		// 書き換え対称メソッド名設定
 		/////////////////////////////////////////////////////////////
 		String s = "Ljava/lang/String;";
 		String w = "Lnet/minecraft/world/WorldSettings;";
-		if (check("func_110549_a", "onResourceManagerReload", "(Lnet/minecraft/client/resources/IResourceManager;)V"))
+		if (check("func_110549_a", "onResourceManagerReload", "(Lnet/minecraft/client/resources/IResourceManager;)V")
+			 || check("func_110549_a", "onResourceManagerReload", "(Lbqy;)V"))
 		{
 			/////////////////////////////////////////////////////////////
 			// 書き換えたい内容を追加したMethodVisitorラップクラスを返す

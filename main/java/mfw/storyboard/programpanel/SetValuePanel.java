@@ -9,9 +9,9 @@ import net.minecraft.util.MathHelper;
 public class SetValuePanel implements IProgramPanel {
 	
 	private static String[] targets = {
-			"Rotation",
+			"Angle",
 			"Accel",
-			"Resist",
+			"Weight",
 			"Size",
 			"Amp",
 			"Phase",
@@ -135,7 +135,7 @@ public class SetValuePanel implements IProgramPanel {
 		{
 			switch(targetindex)
 			{
-			case 0/*rotate*/ : tile.rotation.set(Value); break;
+			case 0/*rotate*/ : tile.rotation.set(Value); tile.speedTemp=Value; break;
 			case 1/*Accel */ : tile.rotAccel = Value; break;
 			case 2/*Resist*/ : tile.rotResist = 1f/Value; break;
 			case 3/*Size  */ : tile.wheelSize.set(Value);; break;
@@ -148,7 +148,7 @@ public class SetValuePanel implements IProgramPanel {
 		{
 			switch(targetindex)
 			{
-			case 0/*rotate*/ : tile.rotation.add(Value); break;
+			case 0/*rotate*/ : tile.rotation.add(Value); tile.speedTemp+=Value; break;
 			case 1/*Accel */ : tile.rotAccel += Value; break;
 			case 2/*Resist*/ : tile.rotResist += 1f/Value; break;
 			case 3/*Size  */ : tile.wheelSize.add(Value); break;

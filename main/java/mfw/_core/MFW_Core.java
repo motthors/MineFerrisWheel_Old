@@ -2,6 +2,7 @@ package mfw._core;
 
 import java.io.File;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
@@ -66,7 +67,7 @@ import net.minecraftforge.common.ForgeChunkManager;
 @TransformerExclusions
 public class MFW_Core {
 	public static final String MODID = "mfw";
-	public static final String VERSION = "1.99beta3";
+	public static final String VERSION = "2.0.1";
 
 	
 	//proxy////////////////////////////////////////
@@ -119,8 +120,8 @@ public class MFW_Core {
 	{
 		MFW_Logger.info("Start preInit");
 
-		SoundManager.JsonUpdate();
 		MFW_checker.check();
+		if(FMLCommonHandler.instance().getEffectiveSide().isClient())SoundManager.JsonUpdate();
 //		if(!MFW_checker.is())return;
 		
 		GameRegistry.registerTileEntity(TileEntityFerrisConstructor.class, "MFW:TileEntityFerrisConstructor");

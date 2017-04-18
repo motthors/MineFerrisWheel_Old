@@ -52,8 +52,11 @@ public class MessageFerrisMisc implements IMessage, IMessageHandler<MessageFerri
 	public static final int GUICoreLock = 209;
 	public static final int GUICoreSetSound = 210;
 	
+	public static final int GUICoreSyncTargetChange = 295;
+	public static final int GUICoreStoryBoardChange = 296;
+	public static final int GUICoreSinConvertChange = 297;
 	public static final int GUICoreSyncMode = 298;
-	public static final int GUICoreModeChange = 299;
+//	public static final int GUICoreModeChange = 299;
 	
 	public static final int GUIFileWrite = 300;
 	public static final int GUIFileRead = 301;
@@ -71,6 +74,7 @@ public class MessageFerrisMisc implements IMessage, IMessageHandler<MessageFerri
 	public static final int GUIOpenStoryBoard = 600;
 	public static final int GUICloseStoryBoard = 601;
 	public static final int GUIStoryBoardSendData = 602;
+	public static final int GUIStoryBoardStop = 603;
 	
 	public static final int GUICoreSoundSelectUp = 700;
 	public static final int GUICoreSoundSelectDown = 701;
@@ -248,11 +252,20 @@ public class MessageFerrisMisc implements IMessage, IMessageHandler<MessageFerri
     	case GUICoreStop:
     		((TileEntityFerrisWheel) tile).getSelectedPartTile().toggleStopFlag();
 			break;	
-    	case GUICoreModeChange : 
-    		((TileEntityFerrisWheel)tile).getSelectedPartTile().changeRotFlag();
+//    	case GUICoreModeChange : 
+//    		((TileEntityFerrisWheel)tile).getSelectedPartTile().changeRotFlag();
+//    		break;
+    	case GUICoreStoryBoardChange:
+    		((TileEntityFerrisWheel)tile).getSelectedPartTile().toggleStoryBoardFlag();    		
+    		break;
+    	case GUICoreSinConvertChange :
+    		((TileEntityFerrisWheel)tile).getSelectedPartTile().toggleSinConvertFlag();
+    		break;
+    	case GUICoreSyncTargetChange:
+    		((TileEntityFerrisWheel)tile).getSelectedPartTile().toggleSyncTarget();   		
     		break;
     	case GUICoreSyncMode :
-    		((TileEntityFerrisWheel)tile).getSelectedPartTile().changeRotFlag_Sync();
+    		((TileEntityFerrisWheel)tile).getSelectedPartTile().toggleSyncFlag();
     		break;
     	case GUICoreRSFlagRotate :
     		((TileEntityFerrisWheel)tile).getSelectedPartTile().rotateRSFlag();
@@ -272,6 +285,9 @@ public class MessageFerrisMisc implements IMessage, IMessageHandler<MessageFerri
 	    		.getSelectedPartTile()
 	    		.getStoryBoardManager()
 	    		.createFromSerialCode(serial);
+    		break;
+    	case GUIStoryBoardStop :
+    		((TileEntityFerrisWheel)tile).getSelectedPartTile().getStoryBoardManager().clear();
     		break;
     		
 		////////////////////////////////////GUI Cutter/////////////////////////////
