@@ -20,6 +20,7 @@ import mfw.handler.renderEventPlayerRot;
 import mfw.renderer.renderBlockCutter;
 import mfw.renderer.renderBlockFerrisCore;
 import mfw.renderer.renderBlockSeatEx;
+import mfw.renderer.renderBlockSyabuNabe;
 import mfw.renderer.renderEntityFerrisBasket;
 import mfw.renderer.renderEntityNon;
 import mfw.renderer.renderEntityPartsTest;
@@ -63,6 +64,7 @@ public class ClientProxy implements IProxy{
 		RenderingRegistry.registerBlockHandler(new renderBlockCutter());
 		RenderingRegistry.registerBlockHandler(new renderBlockFerrisCore());
 		RenderingRegistry.registerBlockHandler(new renderBlockSeatEx());
+		RenderingRegistry.registerBlockHandler(new renderBlockSyabuNabe());
 		
 		KeyHandlerClient.init();
 //		// Handler‚Ì“o˜^

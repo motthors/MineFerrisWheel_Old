@@ -27,6 +27,7 @@ import mfw.block.blockFerrisSupporter;
 import mfw.block.blockFileManager;
 import mfw.block.blockSeatToSitDown;
 import mfw.block.blockSeatToSitEx;
+import mfw.block.blockSyabuNabe;
 import mfw.entity.entityFerrisBasket;
 import mfw.entity.entityPartSit;
 import mfw.entity.entityPartSitEx;
@@ -34,6 +35,8 @@ import mfw.entity.entityParts;
 import mfw.entity.entityPartsTestBase;
 import mfw.gui.MFW_GUIHandler;
 import mfw.handler.handlerChunkLoading;
+import mfw.item.SliceMeat;
+import mfw.item.SliceMeat.itemSliceBeef;
 import mfw.item.itemBlockFerrisCore;
 import mfw.item.itemBlockRemoteController;
 import mfw.item.itemBlockSeatToSitDown;
@@ -67,7 +70,7 @@ import net.minecraftforge.common.ForgeChunkManager;
 @TransformerExclusions
 public class MFW_Core {
 	public static final String MODID = "mfw";
-	public static final String VERSION = "2.0.1";
+	public static final String VERSION = "2.1.0";
 
 	
 	//proxy////////////////////////////////////////
@@ -86,16 +89,26 @@ public class MFW_Core {
 	public static Block ferrisCutter = new blockFerrisCutter();
 	public static Block ferrisSeatEx = new blockSeatToSitEx();
 	public static Block ferrischunkLoader = new blockChunkLoader();
+	public static Block blockSyabuNabe = new blockSyabuNabe();
 	
 	//特殊ブロックレンダラID
 	public static int blockCutterRenderId;
 	public static int blockCoreRenderId;
 	public static int blockSeatExId;
+	public static int blockSyabuNabeId;
 	
 	//観覧車アイテム/////////////////////////////////////////
 	public static ItemBlock ItemFerrisCore = new itemBlockFerrisCore(ferrisCore);
 	public static Item ItemFerrisBasket = new itemFerrisBasket();
 	public static Item ItemFerrisSeed = new itemFerrisSeed();
+	
+	//肉/////////////////////////////////////////
+	public static Item ItemSliceBeef = SliceMeat.FactoryCreateBeaf();
+	public static Item ItemSlicePork = SliceMeat.FactoryCreatePork();
+	public static Item ItemSliceChicken = SliceMeat.FactoryCreateChicken();
+	public static Item ItemSyabuBeef = SliceMeat.FactoryCreateSyabuBeaf();
+	public static Item ItemSyabuPork = SliceMeat.FactoryCreateSyabuPork();
+	public static Item ItemSyabuChicken = SliceMeat.FactoryCreateSyabuChicken();
 	
 	//GUI/////////////////////////////////////////
 	@Mod.Instance(MFW_Core.MODID)
@@ -135,6 +148,7 @@ public class MFW_Core {
 		blockCutterRenderId = proxy.getNewRenderType();
 		blockCoreRenderId = proxy.getNewRenderType();
 		blockSeatExId = proxy.getNewRenderType();
+		blockSyabuNabeId = proxy.getNewRenderType();
 		
 		MFW_PacketHandler.init();
 		proxy.preInit();
@@ -242,6 +256,12 @@ public class MFW_Core {
 			.setBlockTextureName(MFW_Core.MODID+":SeatToSit")
 			.setCreativeTab(MFW_Tab);
 		GameRegistry.registerBlock(ferrisSeatToSit, itemBlockSeatToSitDown.class, "MFW.SeatToSit");
+		
+		blockSyabuNabe
+			.setBlockName("blockSyabuNabe")
+			.setBlockTextureName("anvil_base")
+			.setCreativeTab(MFW_Tab);
+		GameRegistry.registerBlock(blockSyabuNabe, itemBlockSeatToSitDown.class, "MFW.BlockSyabuNabe");
 	}
 	
 	private void InitItem_Ferris()
@@ -264,6 +284,37 @@ public class MFW_Core {
 		ItemFerrisBasket.setTextureName(MODID+":ferrisBasket");
 		ItemFerrisBasket.setMaxStackSize(10);
 		GameRegistry.registerItem(ItemFerrisBasket, "FerrisBasket");
+		
+		//肉
+		ItemSliceBeef.setCreativeTab(MFW_Tab)
+			.setUnlocalizedName("ItemSliceBeef")
+			.setTextureName(MODID+":slicebeef");
+		GameRegistry.registerItem(ItemSliceBeef, "ItemSliceBeef");
+	
+		ItemSlicePork.setCreativeTab(MFW_Tab)
+			.setUnlocalizedName("ItemSlicePork")
+			.setTextureName(MODID+":slicepork");
+		GameRegistry.registerItem(ItemSlicePork, "ItemSlicePork");
+
+		ItemSliceChicken.setCreativeTab(MFW_Tab)
+			.setUnlocalizedName("ItemSliceChicken")
+			.setTextureName(MODID+":slicechicken");
+		GameRegistry.registerItem(ItemSliceChicken, "ItemSliceChicken");
+		
+		ItemSyabuBeef.setCreativeTab(MFW_Tab)
+			.setUnlocalizedName("ItemSyabuBeef")
+			.setTextureName(MODID+":syabubeef");
+		GameRegistry.registerItem(ItemSyabuBeef, "ItemSyabuBeef");
+		
+		ItemSyabuPork.setCreativeTab(MFW_Tab)
+			.setUnlocalizedName("ItemSyabuPork")
+			.setTextureName(MODID+":syabupork");
+		GameRegistry.registerItem(ItemSyabuPork, "ItemSyabuPork");
+	
+		ItemSyabuChicken.setCreativeTab(MFW_Tab)
+			.setUnlocalizedName("ItemSyabuChicken")
+			.setTextureName(MODID+":syabuchicken");
+		GameRegistry.registerItem(ItemSyabuChicken, "ItemSyabuChicken");
 	}
 	
 	private void InitExSeat()
@@ -416,6 +467,29 @@ public class MFW_Core {
 					'P',ERC_Core.ItemBasePipe
 					);
 		}
+		
+		//牛
+		GameRegistry.addRecipe(new ItemStack(ItemSliceBeef, 3),
+				"S",
+				'S',Items.beef
+		);
+		//豚
+		GameRegistry.addRecipe(new ItemStack(ItemSlicePork, 3),
+				"S",
+				'S',Items.porkchop
+		);
+		//鳥
+		GameRegistry.addRecipe(new ItemStack(ItemSliceChicken, 3),
+				"S",
+				'S',Items.chicken
+		);
+		//鍋
+		GameRegistry.addRecipe(new ItemStack(ItemSliceChicken, 3),
+				"IDI",
+				" I ",
+				'I',Items.iron_ingot,
+				'D',Blocks.dirt
+		);
 	}
 	
 	@EventHandler

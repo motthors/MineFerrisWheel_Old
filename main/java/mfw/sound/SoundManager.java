@@ -107,8 +107,6 @@ public class SoundManager {
 	{
 		try {
 			soundloader = new ExternalResourceLoader(soundDomain, Minecraft.getMinecraft().mcDataDir.getPath());
-//			List<IResourcePack> defaultResourcePacks = ObfuscationReflectionHelper.getPrivateValue(Minecraft.class, Minecraft.getMinecraft(), "defaultResourcePacks", "field_110449_ao");
-//	        if(!defaultResourcePacks.contains(soundloader))defaultResourcePacks.add(soundloader);
 			
 	        SimpleReloadableResourceManager resourcemanager = ObfuscationReflectionHelper.getPrivateValue(Minecraft.class, Minecraft.getMinecraft(), "mcResourceManager", "field_110451_am");
 	        resourcemanager.reloadResourcePack(soundloader);
