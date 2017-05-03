@@ -31,7 +31,7 @@ public class FerrisFrameSound extends MovingSound {
 		if (!tile.isInvalid())
 		{
 			float distance = 0.05f * (float) player.getDistanceSq(tile.posX+tile.xCoord, tile.posY+tile.yCoord, tile.posZ+tile.zCoord);
-			float v = tile.rotSpeed * 0.1f;
+			float v = Math.abs(tile.rotSpeed) * 0.1f;
 			float f = v/ (distance + v);
 			if (f >= 0.00001D) 
 			{

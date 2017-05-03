@@ -70,7 +70,7 @@ import net.minecraftforge.common.ForgeChunkManager;
 @TransformerExclusions
 public class MFW_Core {
 	public static final String MODID = "mfw";
-	public static final String VERSION = "2.1.0";
+	public static final String VERSION = "2.1.1";
 
 	
 	//proxy////////////////////////////////////////
