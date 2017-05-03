@@ -50,3 +50,11 @@ gui.core.SyncTarget.speed=Speed
 
 gui.core.Sync.ParentUnregistered=Unregistered
 gui.core.Sync.Parentregistered=Registered
+
+tile.blockSyabuNabe.name=SYABUSYABU NABE
+tile.ItemSliceBeef.name=Slice Beef
+item.ItemSlicePork.name=Slice Pork
+item.ItemSliceChicken.name=Slice Chicken
+item.ItemSyabuBeef.name=SYABUSYABU BEEF
+item.ItemSyabuPork.name=SYABUSYABU PORK
+item.ItemSyabuChicken.name=SYABUSYABU CHICKEN

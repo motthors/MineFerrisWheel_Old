@@ -51,3 +51,11 @@ gui.core.SyncTarget.speed=速さ
 
 gui.core.Sync.ParentUnregistered=未登録
 gui.core.Sync.Parentregistered=登録済
+
+tile.blockSyabuNabe.name=SYABUSYABU鍋
+tile.ItemSliceBeef.name=スライス牛肉
+item.ItemSlicePork.name=スライス豚肉
+item.ItemSliceChicken.name=スライス鳥肉
+item.ItemSyabuBeef.name=SYABUSYABU牛肉
+item.ItemSyabuPork.name=SYABUSYABU豚肉
+item.ItemSyabuChicken.name=SYABUSYABU鳥肉
